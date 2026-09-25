@@ -224,46 +224,27 @@ export function ParentPortal({
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2">
-                        {doc.ocr_markdown && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => setExpandedDocId(isExpanded ? "collapse-all" : doc.id)}
-                              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-all cursor-pointer"
-                            >
-                              {isExpanded ? "▲ Collapse View" : "▼ Expand Full Text"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(doc.ocr_markdown || "");
-                                alert("Document Markdown copied to clipboard!");
-                              }}
-                              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1"
-                            >
-                              <span>📋 Copy</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const blob = new Blob([doc.ocr_markdown || ""], { type: "text/markdown;charset=utf-8;" });
-                                const url = URL.createObjectURL(blob);
-                                const link = document.createElement("a");
-                                link.href = url;
-                                const baseName = doc.file_name.replace(/\.[^/.]+$/, "");
-                                link.download = `${baseName}_FULL_TEXT.md`;
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                                URL.revokeObjectURL(url);
-                              }}
-                              className="px-3.5 py-1.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
-                            >
-                              <span>⬇ Download .MD</span>
-                            </button>
-                          </>
-                        )}
-                        {doc.public_url && (
+                        
+                        <button
+                            type="button"
+                            onClick={() => {
+                              if (typeof window !== "undefined") {
+                                const stored = localStorage.getItem(`maternacare_docs_${parentProfile.email || parentProfile.fullName}`);
+                                if (stored) {
+                                  try {
+                                    const parsed = JSON.parse(stored);
+                                    const updated = parsed.filter((d: any) => d.id !== doc.id);
+                                    localStorage.setItem(`maternacare_docs_${parentProfile.email || parentProfile.fullName}`, JSON.stringify(updated));
+                                    window.location.reload();
+                                  } catch (e) {}
+                                }
+                              }
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold shadow-sm transition-all"
+                          >
+                            Delete Report
+                          </button>
+                          {doc.public_url && (
                           <a
                             href={doc.public_url}
                             target="_blank"
@@ -276,20 +257,7 @@ export function ParentPortal({
                       </div>
                     </div>
 
-                    {/* Auto-expanded full OCR text preview */}
-                    {isExpanded && doc.ocr_markdown && (
-                      <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                          <span>📑 Full Verbatim Document Content:</span>
-                          <span className="text-[11px] text-pink-600 font-mono">
-                            {doc.ocr_markdown.length} Characters
-                          </span>
-                        </div>
-                        <pre className="p-4 rounded-xl bg-slate-950 text-emerald-300 border border-slate-800 text-[11px] font-mono max-h-96 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner">
-                          {doc.ocr_markdown}
-                        </pre>
-                      </div>
-                    )}
+                    
                   </div>
                 );
               })}
@@ -581,10 +549,10 @@ export function ParentPortal({
             </button>
             <button
               type="submit"
-              disabled={profileSaving}
-              className="px-6 py-3 rounded-full bg-gradient-to-r from-pink-500 to-rose-400 text-white font-bold text-sm shadow-md shadow-pink-500/20 hover:from-pink-600 hover:to-rose-500 disabled:bg-gray-400 transition-all flex items-center gap-2"
+              disabled={profileSaving || profileSaveSuccess}
+              className={`px-6 py-3 rounded-full text-white font-bold text-sm shadow-md transition-all flex items-center gap-2 ${profileSaveSuccess ? "bg-green-500 hover:bg-green-600 shadow-green-500/20" : "bg-gradient-to-r from-pink-500 to-rose-400 shadow-pink-500/20 hover:from-pink-600 hover:to-rose-500 disabled:bg-gray-400"}`}
             >
-              {profileSaving ? "Saving to Secure Profile..." : "Save Maternal Profile"}
+              {profileSaving ? "Saving to Secure Profile..." : profileSaveSuccess ? "✅ Profile Saved Successfully!" : "Save Maternal Profile"}
             </button>
           </div>
         </form>
