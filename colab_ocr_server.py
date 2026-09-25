@@ -129,7 +129,7 @@ async def extract_document_text(file: UploadFile = File(...)):
                 except Exception as img_err:
                     print(f"Optical PDF rasterization note: {img_err}")
         else:
-            # Single image file (JPG, PNG)
+            # Image scans (JPG, PNG) or plain text
             try:
                 img = Image.open(io.BytesIO(contents))
                 ocr_results = reader.readtext(contents, detail=0)
@@ -137,8 +137,13 @@ async def extract_document_text(file: UploadFile = File(...)):
                 if len(page_text) < 30:
                     page_text = pytesseract.image_to_string(img).strip()
                 extracted_pages.append(f"### --- SCANNED DOCUMENT TEXT ---\n\n{page_text}")
-            except Exception as img_ocr_err:
-                raise HTTPException(status_code=400, detail=f"Image OCR error: {str(img_ocr_err)}")
+            except Exception:
+                try:
+                    text_str = contents.decode("utf-8", errors="ignore").strip()
+                    if text_str:
+                        extracted_pages.append(f"### --- DOCUMENT TEXT CONTENT ---\n\n{text_str}")
+                except Exception as text_err:
+                    raise HTTPException(status_code=400, detail=f"Document read error: {str(text_err)}")
 
         if not extracted_pages:
             raise HTTPException(status_code=422, detail="No readable text could be extracted from document.")
