@@ -73,11 +73,11 @@ export function ParentPortal({
               <span>Upload Medical Reports &amp; Scans</span>
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              Upload lab reports, ultrasound scans, or antenatal cards to automatically update your health profile via AWS S3 &amp; Jina OCR.
+              Upload lab reports, ultrasound scans, or antenatal cards to automatically update your continuous health profile.
             </p>
           </div>
           <span className="text-xs font-semibold text-pink-700 bg-pink-50 px-3 py-1 rounded-full border border-pink-200 self-start sm:self-auto">
-            AWS S3 Encrypted
+            Encrypted Health Vault
           </span>
         </div>
 
@@ -117,7 +117,7 @@ export function ParentPortal({
               {isParentUploading ? (
                 <>
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                  <span>Extracting with Jina OCR...</span>
+                  <span>Scanning &amp; Reading Document...</span>
                 </>
               ) : (
                 <>
@@ -126,7 +126,7 @@ export function ParentPortal({
               )}
             </button>
             <p className="text-[11px] text-gray-500 text-center">
-              Files are stored in Amazon S3 and securely referenced in PostgreSQL RDS.
+              Files are protected with bank-grade encryption and saved to your continuous medical history.
             </p>
           </div>
         </form>
@@ -139,7 +139,7 @@ export function ParentPortal({
                 <span>✓</span> Report successfully uploaded &amp; attached to your maternal profile!
               </span>
               <span className="text-[10px] font-mono bg-green-200/60 px-2 py-0.5 rounded-full">
-                S3 &amp; RDS Synced
+                Encrypted &amp; Synced
               </span>
             </div>
             {parentUploadResult.extractedEntities && (
@@ -164,7 +164,7 @@ export function ParentPortal({
         <div>
           <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center justify-between">
             <span>Your Uploaded Reports &amp; Medical Files ({parentDocuments.length})</span>
-            <span className="text-xs font-normal text-gray-500">Stored on Amazon S3</span>
+            <span className="text-xs font-normal text-gray-500">Secure Medical Cloud</span>
           </h3>
 
           {parentDocuments.length === 0 ? (
@@ -200,7 +200,7 @@ export function ParentPortal({
                           onClick={() => setExpandedDocId(expandedDocId === doc.id ? null : doc.id)}
                           className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-medium hover:bg-slate-50"
                         >
-                          {expandedDocId === doc.id ? "Hide OCR Text" : "View OCR Markdown"}
+                          {expandedDocId === doc.id ? "Hide Extracted Text" : "View Extracted Summary"}
                         </button>
                       )}
                       {doc.public_url && (
@@ -235,7 +235,7 @@ export function ParentPortal({
           <div>
             <h2 className="text-xl font-bold text-slate-900">Maternal &amp; Parent Profile</h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              Synced with Amazon RDS (PostgreSQL) and CloudWatch audit logger.
+              Protected with bank-grade encryption and synchronized across your care continuum.
             </p>
           </div>
           {profileSaveSuccess && (
@@ -515,7 +515,7 @@ export function ParentPortal({
               disabled={profileSaving}
               className="px-6 py-3 rounded-full bg-gradient-to-r from-pink-500 to-rose-400 text-white font-bold text-sm shadow-md shadow-pink-500/20 hover:from-pink-600 hover:to-rose-500 disabled:bg-gray-400 transition-all flex items-center gap-2"
             >
-              {profileSaving ? "Saving to Amazon RDS..." : "Save Maternal Profile to AWS RDS"}
+              {profileSaving ? "Saving to Secure Profile..." : "Save Maternal Profile"}
             </button>
           </div>
         </form>

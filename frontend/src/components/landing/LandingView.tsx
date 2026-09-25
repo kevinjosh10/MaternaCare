@@ -98,7 +98,7 @@ export function LandingView({ onOpenAuthModal }: LandingViewProps) {
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">REMEMBER</h3>
                 <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                  Extracts and verifies previous medical history from unstructured records using Document AI &amp; Jina OCR.
+                  Extracts and verifies previous medical history from unstructured records using Intelligent Medical AI Scanning.
                 </p>
               </div>
               {/* Pillar 2 */}

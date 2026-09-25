@@ -142,13 +142,13 @@ export default function Home() {
 
       if (response.ok) {
         setProfileSaveSuccess(true);
-        setAwsSyncDetails("Synced with Amazon RDS (maternacare-db) & CloudWatch Logs");
+        setAwsSyncDetails("Encrypted & Securely Synced to Health Record");
         setTimeout(() => setProfileSaveSuccess(false), 4500);
       }
     } catch (err) {
       console.error("Profile save error:", err);
       setProfileSaveSuccess(true);
-      setAwsSyncDetails("Saved locally (AWS backend retry queued)");
+      setAwsSyncDetails("Saved locally (Offline record active)");
     } finally {
       setProfileSaving(false);
     }
@@ -345,7 +345,7 @@ export default function Home() {
     };
     setParentProfile(updated);
     saveProfileToAws(updated);
-    alert("Verified history committed to trusted Patient Health Memory on AWS RDS!");
+    alert("Verified history committed to trusted Maternal Health Profile!");
     setUploadResult(null);
     setUploadFile(null);
   };

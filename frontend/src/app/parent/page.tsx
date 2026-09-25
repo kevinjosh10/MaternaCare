@@ -138,12 +138,12 @@ export default function ParentPage() {
 
       if (response.ok) {
         setProfileSaveSuccess(true);
-        setAwsSyncDetails("Synced with Amazon RDS (maternacare-db) & CloudWatch Logs");
+        setAwsSyncDetails("Encrypted & Securely Synced to Health Record");
         setTimeout(() => setProfileSaveSuccess(false), 4500);
       }
     } catch (err) {
       setProfileSaveSuccess(true);
-      setAwsSyncDetails("Saved locally (AWS backend retry queued)");
+      setAwsSyncDetails("Saved locally (Offline record active)");
     } finally {
       setProfileSaving(false);
     }
@@ -302,7 +302,7 @@ export default function ParentPage() {
                 <p className="text-xs text-gray-500 mt-1">
                   {authMode === "login"
                     ? "Sign in to access your maternal health records and upload medical reports."
-                    : "Create your continuous maternal profile on Amazon RDS."}
+                    : "Create your continuous encrypted maternal health profile."}
                 </p>
               </div>
 

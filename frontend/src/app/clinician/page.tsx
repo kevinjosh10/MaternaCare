@@ -156,7 +156,7 @@ export default function ClinicianPage() {
       });
     } catch (e) {}
 
-    alert("Verified history committed to trusted Patient Health Memory on AWS RDS!");
+    alert("Verified history committed to trusted Maternal Health Profile!");
     setUploadResult(null);
     setUploadFile(null);
   };
@@ -223,7 +223,7 @@ export default function ClinicianPage() {
                 </div>
                 <h1 className="text-2xl font-extrabold text-slate-900">Clinician Triage Hub</h1>
                 <p className="text-xs text-gray-500 mt-1">
-                  Access patient longitudinal risk trajectories and Document AI on AWS.
+                  Access patient longitudinal risk trajectories and intelligent clinical records.
                 </p>
               </div>
 

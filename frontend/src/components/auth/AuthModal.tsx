@@ -179,8 +179,8 @@ export function AuthModal({
           </h3>
           <p className="text-xs text-gray-500 mt-1">
             {authMode === "login"
-              ? "Sign in to access your continuous health record on AWS."
-              : "Register your profile and store on Amazon RDS & S3."}
+              ? "Sign in to access your continuous maternal and neonatal health record."
+              : "Register your profile to create your unbroken, encrypted medical record."}
           </p>
         </div>
 

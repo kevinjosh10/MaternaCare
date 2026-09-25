@@ -34,7 +34,7 @@ export function ClinicianPortal({
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 text-xs text-pink-300 font-semibold mb-3 border border-slate-700">
             <span className="w-2 h-2 rounded-full bg-green-400 animate-ping"></span>
-            AWS Cloud Connected
+            Encrypted Medical Cloud Active
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-blue-400">
@@ -47,19 +47,19 @@ export function ClinicianPortal({
           </p>
         </div>
 
-        {/* AWS Service Health Badges */}
+        {/* Clinical Service Health Badges */}
         <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3">
           <div className="flex items-center gap-1.5 text-slate-300">
-            <span className="text-green-400">●</span> S3 Storage: Active
+            <span className="text-green-400">●</span> Health Vault: Encrypted
           </div>
           <div className="flex items-center gap-1.5 text-slate-300">
-            <span className="text-green-400">●</span> RDS Postgres: Online
+            <span className="text-green-400">●</span> Health Records: Synced
           </div>
           <div className="flex items-center gap-1.5 text-slate-300">
-            <span className="text-green-400">●</span> CloudWatch: Streaming
+            <span className="text-green-400">●</span> Audit Logging: Active
           </div>
           <div className="flex items-center gap-1.5 text-slate-300">
-            <span className="text-green-400">●</span> Jina OCR v1: Ready
+            <span className="text-green-400">●</span> AI Document OCR: Ready
           </div>
         </div>
       </div>
@@ -104,7 +104,7 @@ export function ClinicianPortal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
               <span className="font-bold text-slate-800 block mb-1">
-                Verified Clinical History (from S3 &amp; RDS)
+                Verified Clinical History &amp; Prior Records
               </span>
               <p className="text-slate-600">
                 {parentProfile.medicalConditions || "No prior conditions reported."}
@@ -144,7 +144,7 @@ export function ClinicianPortal({
                       <div>
                         <span className="font-semibold text-slate-800">{doc.file_name}</span>
                         <span className="text-[10px] text-gray-400 block">
-                          {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : "Recent"} &bull; S3 Bucket Verified
+                          {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : "Recent"} &bull; Secure Cloud Verified
                         </span>
                       </div>
                     </div>
@@ -155,7 +155,7 @@ export function ClinicianPortal({
                         rel="noreferrer"
                         className="text-[11px] font-semibold text-pink-600 hover:text-pink-700 underline"
                       >
-                        View S3 File ↗
+                        View Original Document ↗
                       </a>
                     )}
                   </div>
@@ -174,22 +174,22 @@ export function ClinicianPortal({
               <span>Dispatch to Ambulance &amp; Hospital Hub →</span>
             </button>
             <button
-              onClick={() => alert("Exporting encrypted clinical handover report to Amazon S3...")}
+              onClick={() => alert("Exporting encrypted clinical handover report to Secure Medical Vault...")}
               className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all"
             >
-              Export S3 Handover Summary
+              Export Clinical Handover Summary
             </button>
           </div>
         </div>
 
-        {/* Right Column: S3 & Jina OCR Medical Record Scanner */}
+        {/* Right Column: AI Medical Record Scanner */}
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-6">
           <div>
             <h3 className="text-base font-bold text-slate-900">
-              Document AI Scanner
+              Intelligent Medical Record Scanner
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              Upload paper discharge slips or lab reports to Amazon S3 for Jina OCR extraction.
+              Upload paper discharge slips or lab reports for automated clinical AI extraction.
             </p>
           </div>
 
@@ -212,7 +212,7 @@ export function ClinicianPortal({
                   {uploadFile ? uploadFile.name : "Choose PDF or Scan"}
                 </span>
                 <span className="text-[10px] text-gray-400 block mt-1">
-                  Saves to S3 &bull; Parses via Jina OCR v1
+                  Encrypted Cloud Storage &bull; Clinical AI Extraction
                 </span>
               </label>
             </div>
@@ -222,11 +222,11 @@ export function ClinicianPortal({
               disabled={!uploadFile || isUploading}
               className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-pink-500 to-rose-400 text-white font-bold text-xs shadow-sm hover:from-pink-600 hover:to-rose-500 disabled:bg-gray-300 transition-all"
             >
-              {isUploading ? "Uploading to S3 & Running OCR..." : "Upload & Extract with Jina AI"}
+              {isUploading ? "Uploading & Scanning Document..." : "Upload & Extract Clinical Data"}
             </button>
           </form>
 
-          {/* OCR Results & Human-in-the-Loop Verification */}
+          {/* OCR Results & Clinical Verification */}
           {uploadResult && (
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
               <div className="flex items-center justify-between">
@@ -234,7 +234,7 @@ export function ClinicianPortal({
                   Extracted Clinical Tags
                 </span>
                 <span className="text-[10px] bg-green-100 text-green-800 font-semibold px-2 py-0.5 rounded-full">
-                  S3 Synced
+                  Encrypted &amp; Verified
                 </span>
               </div>
 
@@ -254,7 +254,7 @@ export function ClinicianPortal({
                 onClick={onCommitVerifiedHistory}
                 className="w-full py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all"
               >
-                Verify &amp; Commit to RDS Memory →
+                Verify &amp; Add to Patient Health Record →
               </button>
             </div>
           )}

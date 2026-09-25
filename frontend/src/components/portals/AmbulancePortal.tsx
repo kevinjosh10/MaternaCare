@@ -106,7 +106,7 @@ export function AmbulancePortal({ onBackToHome }: AmbulancePortalProps) {
 
         <div className="pt-4 border-t border-slate-100 flex justify-between items-center text-xs text-gray-500">
           <span>Status: Awaiting Dispatch Trigger</span>
-          <span>AWS CloudWatch: Connected</span>
+          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500"></span> Emergency Network: Connected</span>
         </div>
       </div>
     </section>
