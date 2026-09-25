@@ -174,6 +174,11 @@ export default function Home() {
     formData.append("patientName", parentProfile.fullName);
     formData.append("userId", "parent");
 
+    const savedColabUrl = typeof window !== "undefined" ? localStorage.getItem("maternacare_colab_ocr_url") : null;
+    if (savedColabUrl) {
+      formData.append("colabUrl", savedColabUrl);
+    }
+
     try {
       const response = await fetch("/api/documents/upload", {
         method: "POST",
@@ -357,6 +362,11 @@ DIAGNOSTIC ASSESSMENT & EMERGENCY PLAN:
     formData.append("patientId", patientIdentifier);
     formData.append("patientName", parentProfile.fullName);
     formData.append("userId", "clinician");
+
+    const savedColabUrl = typeof window !== "undefined" ? localStorage.getItem("maternacare_colab_ocr_url") : null;
+    if (savedColabUrl) {
+      formData.append("colabUrl", savedColabUrl);
+    }
 
     try {
       const response = await fetch("/api/documents/upload", {

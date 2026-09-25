@@ -207,13 +207,19 @@ export function ClinicianPortal({
         </div>
 
         {/* Right Column: AI Medical Record Scanner */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-6">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-5">
           <div>
-            <h3 className="text-base font-bold text-slate-900">
-              Intelligent Medical Record Scanner
-            </h3>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Upload paper discharge slips or lab reports for automated clinical AI extraction.
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-base font-bold text-slate-900">
+                Intelligent Medical Record Scanner
+              </h3>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-green-100 text-green-800 text-[10px] font-bold">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                Model 5 OCR Active
+              </span>
+            </div>
+            <p className="text-xs text-gray-500">
+              Upload multi-page paper discharge summaries or antenatal cards to extract 100% of all text into Markdown (.md).
             </p>
           </div>
 

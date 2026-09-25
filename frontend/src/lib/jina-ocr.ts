@@ -70,12 +70,13 @@ function extractTextFromStreams(pdfBuffer: Buffer): string {
 export async function extractMedicalDocumentWithJina(
   fileBuffer: Buffer,
   fileName: string,
-  contentType: string
+  contentType: string,
+  customColabUrl?: string | null
 ): Promise<{ markdown: string; extractedEntities: ClinicalEntities; rawFullText: string; pageCount?: number }> {
   let rawExtractedText = "";
   let pageCount = 1;
   const JINA_API_KEY = process.env.JINA_API_KEY || "";
-  const COLAB_OCR_URL = process.env.COLAB_OCR_URL || process.env.PYTHON_BACKEND_URL || "http://localhost:8000";
+  const COLAB_OCR_URL = customColabUrl || process.env.COLAB_OCR_URL || process.env.PYTHON_BACKEND_URL || "http://localhost:8000";
 
   // =========================================================================
   // Strategy 1: Forward to Google Colab / Python Backend (Model 5 OCR Service)
@@ -85,6 +86,8 @@ export async function extractMedicalDocumentWithJina(
       const endpoint = COLAB_OCR_URL.endsWith("/api/ocr")
         ? COLAB_OCR_URL
         : `${COLAB_OCR_URL.replace(/\/$/, "")}/api/ocr`;
+
+      console.log(`[Model 5 OCR] Dispatching document "${fileName}" to Colab at: ${endpoint}`);
 
       const formData = new FormData();
       const blob = new Blob([new Uint8Array(fileBuffer)], { type: contentType || "application/pdf" });

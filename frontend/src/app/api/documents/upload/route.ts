@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
+    const colabUrl = (formData.get("colabUrl") as string) || (req.headers.get("x-colab-url") as string) || null;
     patientId = (formData.get("patientId") as string) || "priya.sharma@example.com";
     patientName = (formData.get("patientName") as string) || "Priya Sharma";
     userId = (formData.get("userId") as string) || "parent";
@@ -41,11 +42,12 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     fileBuffer = Buffer.from(arrayBuffer);
 
-    // 1. Perform 100% Full-Text Extraction via pdf-parse & OCR Engine
+    // 1. Perform 100% Full-Text Extraction via Google Colab Model 5 / OCR Engine
     const ocrResult = await extractMedicalDocumentWithJina(
       fileBuffer,
       fileName,
-      fileType
+      fileType,
+      colabUrl
     );
 
     const docId = `DOC-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`;
