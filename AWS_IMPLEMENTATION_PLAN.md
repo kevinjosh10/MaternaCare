@@ -1,6 +1,6 @@
-# MaternaCare — AWS Cloud Architecture & AWS CLI Implementation Plan
+# MaternaCare — AWS Cloud Architecture & AWS CLI Implementation Plan (with Jina AI OCR)
 
-This document outlines the complete step-by-step implementation plan for deploying the **MaternaCare** backend, Document AI pipeline, PostgreSQL database, and machine learning inference services on **Amazon Web Services (AWS)** using the **AWS CLI**.
+This document outlines the complete step-by-step implementation plan for deploying the **MaternaCare** backend, **Jina OCR v1 (`jinaai/jina-ocr-v1`)** Document AI pipeline, PostgreSQL database, and machine learning inference services on **Amazon Web Services (AWS)** using the **AWS CLI**.
 
 ---
 
@@ -9,16 +9,17 @@ This document outlines the complete step-by-step implementation plan for deployi
 ```text
 [ React Frontend (Vercel) ]
              │
-             ▼ (HTTPS API Requests)
-[ AWS Application Load Balancer / ECS Fargate (FastAPI) ]
+             ▼ (HTTPS / REST API)
+[ AWS ECS Fargate Container (FastAPI + Temporal ML) ]
              │
    ┌─────────┼─────────────────────────┬─────────────────────────┐
    ▼         ▼                         ▼                         ▼
-[ S3 Bucket ]   [ RDS PostgreSQL ]   [ Amazon Textract ]   [ Secrets Manager ]
-(Medical Records) (Health Memory & Vitals) (Document OCR)    (API Keys / DB Secrets)
+[ S3 Bucket ]   [ RDS PostgreSQL ]   [ Jina OCR v1 Engine ] [ Secrets Manager ]
+(Medical Records (Patient Profiles    (Hugging Face / API     (JINA_API_KEY, DB,
+ & Model Files)   & Verified History)  Markdown Extraction)    Twilio, Maps)
    │                                                             │
    ▼                                                             ▼
-[ CloudWatch Logs & Monitoring ]                     [ Twilio & Maps Integration ]
+[ CloudWatch Logs & Monitoring ]                     [ Telephony & Dispatch ]
 ```
 
 ---
@@ -30,8 +31,9 @@ This document outlines the complete step-by-step implementation plan for deployi
    aws configure
    # Enter AWS Access Key ID, Secret Access Key, Region (e.g., ap-south-1 or us-east-1), output (json)
    ```
-2. **Docker** installed locally for building container images.
-3. Verify your identity:
+2. **Docker** installed locally for building backend container images.
+3. **Jina AI API Key / Hugging Face Token** (from [jina.ai](https://jina.ai/) or [Hugging Face](https://huggingface.co/jinaai/jina-ocr-v1)).
+4. Verify your identity:
    ```bash
    aws sts get-caller-identity
    ```
@@ -44,8 +46,6 @@ This document outlines the complete step-by-step implementation plan for deployi
 
 ### Step 1: Set Up Environment Variables
 
-Set default project variables to make commands reusable:
-
 ```bash
 # Set your preferred AWS Region and Project Name
 export AWS_REGION="ap-south-1"
@@ -55,7 +55,7 @@ export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output tex
 
 ---
 
-### Step 2: Create S3 Buckets for Medical Documents & Model Artifacts
+### Step 2: Create S3 Bucket for Medical Documents & Model Artifacts
 
 Create secure S3 storage for patient medical records (PDFs/Images) and ML model artifacts:
 
@@ -87,7 +87,7 @@ aws s3api put-public-access-block \
         "RestrictPublicBuckets": true
     }'
 
-# 4. Set CORS Policy (For secure direct uploads from Vercel frontend if needed)
+# 4. Set CORS Policy (For direct uploads from Vercel frontend if needed)
 aws s3api put-bucket-cors \
     --bucket "${PROJECT_NAME}-storage-${AWS_ACCOUNT_ID}" \
     --cors-configuration '{
@@ -102,9 +102,7 @@ aws s3api put-bucket-cors \
 
 ---
 
-### Step 3: Create IAM Roles for ECS & Application Services
-
-Create execution and task roles with least-privilege policies:
+### Step 3: Create IAM Roles for ECS Container Tasks
 
 ```bash
 # 1. Create ECS Task Execution Role (Allows ECS to pull images and write logs)
@@ -124,7 +122,7 @@ aws iam attach-role-policy \
     --role-name "${PROJECT_NAME}-ecs-execution-role" \
     --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
 
-# 2. Create ECS Task Role (Permissions for running container: S3 + Textract)
+# 2. Create ECS Task Role (Runtime permissions for S3 & Secrets Manager)
 aws iam create-role \
     --role-name "${PROJECT_NAME}-ecs-task-role" \
     --assume-role-policy-document '{
@@ -136,7 +134,7 @@ aws iam create-role \
         }]
     }'
 
-# 3. Attach custom S3 & Textract Policy to Task Role
+# 3. Attach S3 & Secrets Manager Access Policy to Task Role
 aws iam put-role-policy \
     --role-name "${PROJECT_NAME}-ecs-task-role" \
     --policy-name "${PROJECT_NAME}-task-policy" \
@@ -158,14 +156,6 @@ aws iam put-role-policy \
             {
                 "Effect": "Allow",
                 "Action": [
-                    "textract:DetectDocumentText",
-                    "textract:AnalyzeDocument"
-                ],
-                "Resource": "*"
-            },
-            {
-                "Effect": "Allow",
-                "Action": [
                     "secretsmanager:GetSecretValue"
                 ],
                 "Resource": "*"
@@ -176,21 +166,21 @@ aws iam put-role-policy \
 
 ---
 
-### Step 4: Configure AWS Secrets Manager
+### Step 4: Configure AWS Secrets Manager (Including Jina AI OCR)
 
-Store database credentials and external API tokens securely:
+Store database credentials, Jina OCR credentials, and external API tokens securely:
 
 ```bash
 aws secretsmanager create-secret \
     --name "${PROJECT_NAME}/production/secrets" \
-    --description "MaternaCare Production Secrets" \
+    --description "MaternaCare Production Secrets with Jina OCR Key" \
     --secret-string '{
         "DATABASE_URL": "postgresql://maternacare_admin:StrongPassword123@<RDS_ENDPOINT>:5432/maternacare_db",
+        "JINA_API_KEY": "jina_your_api_key_here",
         "JWT_SECRET": "your-secure-random-jwt-key-for-auth",
         "TWILIO_ACCOUNT_SID": "your_twilio_sid",
         "TWILIO_AUTH_TOKEN": "your_twilio_token",
-        "GOOGLE_MAPS_API_KEY": "your_google_maps_api_key",
-        "JINA_API_KEY": "your_jina_key_if_used"
+        "GOOGLE_MAPS_API_KEY": "your_google_maps_api_key"
     }'
 ```
 
@@ -199,24 +189,24 @@ aws secretsmanager create-secret \
 ### Step 5: Provision Amazon RDS PostgreSQL Database
 
 ```bash
-# 1. Create a Security Group for RDS
+# 1. Get Default VPC
 VPC_ID=$(aws ec2 describe-vpcs --filters "Name=isDefault,Values=true" --query "Vpcs[0].VpcId" --output text)
 
+# 2. Create Security Group for RDS
 RDS_SG_ID=$(aws ec2 create-security-group \
     --group-name "${PROJECT_NAME}-rds-sg" \
     --description "Security group for MaternaCare PostgreSQL database" \
     --vpc-id ${VPC_ID} \
     --query "GroupId" --output text)
 
-# 2. Allow Inbound PostgreSQL (Port 5432) from VPC
+# 3. Allow Inbound PostgreSQL (Port 5432) from VPC
 aws ec2 authorize-security-group-ingress \
     --group-id ${RDS_SG_ID} \
     --protocol tcp \
     --port 5432 \
     --cidr 0.0.0.0/0
-    # Note: In strict production, restrict this CIDR to your ECS security group
 
-# 3. Create the PostgreSQL Database Instance (Free-Tier Eligible db.t3.micro / db.t4g.micro)
+# 4. Create the PostgreSQL Database Instance (Free-Tier Eligible db.t4g.micro)
 aws rds create-db-instance \
     --db-instance-identifier "${PROJECT_NAME}-db" \
     --db-instance-class db.t4g.micro \
@@ -266,7 +256,7 @@ aws logs create-log-group \
 
 ---
 
-### Step 8: Deploy on Amazon ECS (Fargate)
+### Step 8: Deploy Backend on Amazon ECS (Fargate)
 
 ```bash
 # 1. Create ECS Cluster
@@ -274,7 +264,7 @@ aws ecs create-cluster \
     --cluster-name "${PROJECT_NAME}-cluster" \
     --region ${AWS_REGION}
 
-# 2. Register ECS Task Definition
+# 2. Register ECS Task Definition with Jina OCR Configuration
 aws ecs register-task-definition \
     --family "${PROJECT_NAME}-backend-task" \
     --network-mode awsvpc \
@@ -294,7 +284,18 @@ aws ecs register-task-definition \
             }],
             "environment": [
                 {"name": "AWS_REGION", "value": "'"${AWS_REGION}"'"},
-                {"name": "S3_BUCKET_NAME", "value": "'"${PROJECT_NAME}"'-storage-'"${AWS_ACCOUNT_ID}"'"}
+                {"name": "S3_BUCKET_NAME", "value": "'"${PROJECT_NAME}"'-storage-'"${AWS_ACCOUNT_ID}"'"},
+                {"name": "OCR_ENGINE", "value": "jina-ocr-v1"}
+            ],
+            "secrets": [
+                {
+                    "name": "JINA_API_KEY",
+                    "valueFrom": "arn:aws:secretsmanager:'"${AWS_REGION}"':'"${AWS_ACCOUNT_ID}"':secret:'"${PROJECT_NAME}"'/production/secrets:JINA_API_KEY::"
+                },
+                {
+                    "name": "DATABASE_URL",
+                    "valueFrom": "arn:aws:secretsmanager:'"${AWS_REGION}"':'"${AWS_ACCOUNT_ID}"':secret:'"${PROJECT_NAME}"'/production/secrets:DATABASE_URL::"
+                }
             ],
             "logConfiguration": {
                 "logDriver": "awslogs",
@@ -339,7 +340,7 @@ aws ecs create-service \
 ## 🔍 4. Verification & Testing via AWS CLI
 
 ```bash
-# 1. Check RDS Database Status
+# 1. Check RDS Database Status & Endpoint
 aws rds describe-db-instances \
     --db-instance-identifier "${PROJECT_NAME}-db" \
     --query "DBInstances[0].[DBInstanceStatus,Endpoint.Address]"
@@ -349,21 +350,15 @@ TASK_ARN=$(aws ecs list-tasks --cluster "${PROJECT_NAME}-cluster" --query "taskA
 ENI_ID=$(aws ecs describe-tasks --cluster "${PROJECT_NAME}-cluster" --tasks ${TASK_ARN} --query "tasks[0].attachments[0].details[?name=='networkInterfaceId'].value" --output text)
 PUBLIC_IP=$(aws ec2 describe-network-interfaces --network-interface-ids ${ENI_ID} --query "NetworkInterfaces[0].Association.PublicIp" --output text)
 
-echo "Backend Live at: http://${PUBLIC_IP}:8000/docs"
+echo "FastAPI Backend with Jina OCR Live at: http://${PUBLIC_IP}:8000/docs"
 
-# 3. Test Amazon Textract via CLI
-aws textract detect-document-text \
-    --document '{"S3Object":{"Bucket":"'"${PROJECT_NAME}"'-storage-'"${AWS_ACCOUNT_ID}"'","Name":"sample_prescription.pdf"}}'
-
-# 4. View Live CloudWatch Logs
+# 3. View Live CloudWatch Logs for OCR Extractions
 aws logs tail "/ecs/${PROJECT_NAME}-backend" --follow
 ```
 
 ---
 
 ## 🧹 5. Teardown & Cost Cleanup (Post-Hackathon)
-
-To prevent unwanted cloud charges after the demo:
 
 ```bash
 # 1. Delete ECS Service & Cluster
