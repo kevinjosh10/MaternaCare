@@ -200,68 +200,28 @@ export function ParentPortal({
           </div>
         </form>
 
-        {/* Upload Success Notice & Full Markdown Output Preview */}
+        {/* Upload Success Notice */}
         {parentUploadResult && (
-          <div className="p-5 sm:p-6 rounded-2xl bg-slate-900 text-white text-xs space-y-4 shadow-xl border border-slate-700">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <span className="font-extrabold flex items-center gap-2 text-base text-green-400">
-                  <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-ping"></span>
-                  Model 5 Full-Text OCR Complete (100% Extracted)
+          <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-xl shadow-teal-500/20 border border-teal-400/50 flex flex-col md:flex-row items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center flex-shrink-0 border border-white/30">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+            </div>
+            <div>
+              <h3 className="font-extrabold text-lg flex items-center gap-2">
+                Clinical Context Loaded Successfully!
+                <span className="flex h-3 w-3 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-200 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
                 </span>
-                <p className="text-slate-400 text-xs mt-0.5">
-                  Extracted from <code className="text-pink-300 font-bold">{parentUploadResult.fileName}</code> &bull; Preserved across all pages without omission.
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {parentUploadResult.ocrMarkdown && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(parentUploadResult.ocrMarkdown || "");
-                        alert("Full extracted Markdown copied to clipboard!");
-                      }}
-                      className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-600 transition-all flex items-center gap-1.5"
-                    >
-                      <span>📋 Copy .MD Text</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const blob = new Blob([parentUploadResult.ocrMarkdown || ""], { type: "text/markdown;charset=utf-8;" });
-                        const url = URL.createObjectURL(blob);
-                        const link = document.createElement("a");
-                        link.href = url;
-                        const baseName = (parentUploadResult.fileName || "Medical_Report.pdf").replace(/\.[^/.]+$/, "");
-                        link.download = `${baseName}_OCR_FULL_TEXT.md`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(url);
-                      }}
-                      className="px-3.5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs shadow-md shadow-pink-600/30 flex items-center gap-1.5 transition-all"
-                    >
-                      <span>⬇ Download Complete .MD File</span>
-                    </button>
-                  </>
-                )}
+              </h3>
+              <p className="text-teal-50 text-sm mt-1 leading-relaxed">
+                The data from <strong className="text-white bg-black/10 px-1.5 py-0.5 rounded font-mono mx-1">{parentUploadResult.fileName}</strong> has been extracted and injected into your continuous maternal timeline. The AI model is now fully aware of these new clinical details.
+              </p>
+              <div className="mt-4 inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-semibold border border-white/20">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                <span>You can now ask the AI Voice Assistant questions about this report!</span>
               </div>
             </div>
-
-            {parentUploadResult.ocrMarkdown && (
-              <div className="space-y-2">
-                <div className="text-xs font-bold text-slate-300 flex items-center justify-between">
-                  <span>📑 Complete Verbatim Markdown Output:</span>
-                  <span className="text-[11px] text-pink-400 font-mono">
-                    {parentUploadResult.ocrMarkdown.length} Characters Captured
-                  </span>
-                </div>
-                <pre className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-[11px] font-mono text-emerald-300 max-h-96 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner">
-                  {parentUploadResult.ocrMarkdown}
-                </pre>
-              </div>
-            )}
           </div>
         )}
 
