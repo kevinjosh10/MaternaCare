@@ -34,12 +34,17 @@ export function ParentPortal({
   onBackToHome,
 }: ParentPortalProps) {
   const [expandedDocId, setExpandedDocId] = useState<string | null>(null);
-  const [colabUrl, setColabUrl] = useState<string>("");
+  const [colabUrl, setColabUrl] = useState<string>("https://unearned-overheat-amuser.ngrok-free.dev");
   const [showColabInput, setShowColabInput] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setColabUrl(localStorage.getItem("maternacare_colab_ocr_url") || "");
+      const stored = localStorage.getItem("maternacare_colab_ocr_url");
+      if (stored) {
+        setColabUrl(stored);
+      } else {
+        localStorage.setItem("maternacare_colab_ocr_url", "https://unearned-overheat-amuser.ngrok-free.dev");
+      }
     }
   }, []);
 

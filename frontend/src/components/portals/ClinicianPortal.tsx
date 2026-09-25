@@ -264,7 +264,7 @@ export function ClinicianPortal({
                   Extracted Clinical Tags
                 </span>
                 <span className="text-[10px] bg-green-100 text-green-800 font-semibold px-2 py-0.5 rounded-full">
-                  Encrypted &amp; Verified
+                  Model 5 Verified
                 </span>
               </div>
 
@@ -278,6 +278,35 @@ export function ClinicianPortal({
                   </div>
                 ))}
               </div>
+
+              {uploadResult.ocrMarkdown && (
+                <div className="space-y-2 pt-2 border-t border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800">Full Extracted .MD:</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const blob = new Blob([uploadResult.ocrMarkdown || ""], { type: "text/markdown;charset=utf-8;" });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = url;
+                        const baseName = (uploadResult.fileName || "Medical_Report.pdf").replace(/\.[^/.]+$/, "");
+                        link.download = `${baseName}_OCR_FULL_TEXT.md`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-green-700 hover:bg-green-800 text-white font-bold text-[10px] transition-all flex items-center gap-1 shadow-sm"
+                    >
+                      <span>⬇ Download .MD</span>
+                    </button>
+                  </div>
+                  <pre className="p-3 rounded-xl bg-white border border-slate-200 text-[10px] font-mono text-slate-700 max-h-48 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+                    {uploadResult.ocrMarkdown}
+                  </pre>
+                </div>
+              )}
 
               <button
                 type="button"
