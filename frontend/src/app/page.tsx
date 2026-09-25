@@ -490,253 +490,106 @@ export default function Home() {
         {/* 1. AMBULANCE & RECEIVING HOSPITAL DISPATCH PORTAL */}
         {/* ========================================================================= */}
         {loggedInRole === "ambulance" ? (
-          <section className="py-10 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-8">
-            {/* Top Emergency Dispatch Header */}
+          <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto space-y-8">
+            {/* Header */}
             <div className="bg-gradient-to-r from-slate-900 via-red-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-red-900/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/30 text-red-300 text-xs font-bold mb-3 border border-red-500/40">
                   <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
-                  LIVE EMERGENCY DISPATCH FEED &bull; AWS CLOUDWATCH LOGGED
+                  AMBULANCE &amp; HOSPITAL DISPATCH UNIT
                 </div>
-                <h1 className="text-2xl sm:text-4xl font-black tracking-tight flex items-center gap-3">
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-red-600/40 border border-red-500/50 flex items-center justify-center text-red-300">
                     <AmbulanceIcon className="w-6 h-6" />
                   </div>
-                  <span>Emergency Ambulance &amp; Hospital Hub</span>
+                  <span>Ambulance &amp; Hospital Portal</span>
                 </h1>
                 <p className="text-slate-300 text-xs sm:text-sm mt-1">
-                  Assigned Unit: <span className="text-white font-bold">ALS Ambulance 108-A</span> &bull; Destination: <span className="text-white font-bold">{parentProfile.preferredFacility}</span>
+                  Ready to receive live emergency referral transmissions from primary health centres.
                 </p>
               </div>
 
-              {/* Status Stepper Summary */}
-              <div className="bg-black/40 border border-white/10 rounded-2xl p-4 min-w-[220px] text-center">
-                <div className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Transfer Status</div>
-                <div className="text-xl font-extrabold text-red-400 mt-1">
-                  {dispatchStatus.replace(/_/g, " ")}
-                </div>
-                <span className="inline-block mt-1 text-[10px] bg-red-500/20 text-red-200 px-2.5 py-0.5 rounded-full font-semibold border border-red-500/30">
-                  ETA: ~12 Mins (7.8 km)
-                </span>
-              </div>
+              <button
+                onClick={() => setLoggedInRole(null)}
+                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/20 transition-all"
+              >
+                ← Back to Home
+              </button>
             </div>
 
-            {/* Main Ambulance Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Left Column (2 Cols): Clinical Referral Handover Summary & Actions */}
-              <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                  <div>
-                    <span className="text-[11px] font-bold text-red-600 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200 uppercase tracking-wide">
-                      High-Priority Referral Handover
-                    </span>
-                    <h2 className="text-2xl font-bold text-slate-900 mt-1">
-                      {parentProfile.fullName} ({parentProfile.age}y, {parentProfile.gravidity}/{parentProfile.parity})
-                    </h2>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs font-bold text-slate-800 block">Gestational Age: {parentProfile.gestationalWeeks} Weeks</span>
-                    <span className="text-xs text-gray-500 font-medium">Blood Group: <strong className="text-slate-900">{parentProfile.bloodGroup}</strong></span>
-                  </div>
-                </div>
-
-                {/* Warning Signs & Telephony Voice Brief */}
-                <div className="p-5 rounded-2xl bg-red-50/80 border border-red-200 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-red-900 uppercase tracking-wide flex items-center gap-1.5">
-                      <AmbulanceIcon className="w-4 h-4 text-red-600" />
-                      Verified Warning Signs from Clinician Triage
-                    </span>
-                    <span className="text-[11px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">
-                      Preeclampsia Cluster
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-red-950 leading-relaxed">
-                    <strong>Reason for Emergency Dispatch:</strong> Rapid Blood Pressure spike (+24 mmHg MAP velocity), Severe Proteinuria (++), Persistent Headache, and verified history of <strong>{parentProfile.medicalConditions}</strong>.
-                  </p>
-
-                  <div className="pt-2 flex flex-wrap items-center gap-3">
-                    <button
-                      onClick={playEmergencyVoiceAlert}
-                      disabled={isPlayingAudio}
-                      className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-500/20 transition-all flex items-center gap-2"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                      </svg>
-                      {isPlayingAudio ? "Playing Voice Handover..." : "Play Synthesized Clinician Voice Alert"}
-                    </button>
-                    <span className="text-[11px] text-red-700 font-medium">
-                      Simulates Twilio Telephony / Text-to-Speech API Call
-                    </span>
-                  </div>
-                </div>
-
-                {/* Live In-Transit Vitals & Emergency Parameters */}
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3">
-                    Live Telemetry &amp; In-Transit Parameters
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                      <div className="text-[10px] text-gray-500 uppercase font-bold">Blood Pressure</div>
-                      <div className="text-lg font-black text-rose-600 mt-0.5">144/94</div>
-                      <span className="text-[10px] text-rose-500 font-semibold">Elevated (MAP: 110)</span>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                      <div className="text-[10px] text-gray-500 uppercase font-bold">Fetal Heart Rate</div>
-                      <div className="text-lg font-black text-emerald-600 mt-0.5">148 bpm</div>
-                      <span className="text-[10px] text-emerald-600 font-semibold">Normal Baseline</span>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                      <div className="text-[10px] text-gray-500 uppercase font-bold">SpO2 Oxygen</div>
-                      <div className="text-lg font-black text-blue-600 mt-0.5">99%</div>
-                      <span className="text-[10px] text-blue-500 font-semibold">On 2L Oxygen</span>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                      <div className="text-[10px] text-gray-500 uppercase font-bold">Known Allergy</div>
-                      <div className="text-sm font-bold text-red-600 mt-1 truncate">
-                        {parentProfile.knownAllergies || "Penicillin"}
-                      </div>
-                      <span className="text-[10px] text-gray-400">Strict Warning</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dispatch Lifecycle Stepper Actions */}
-                <div className="pt-2 border-t border-slate-100">
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-3">
-                    Update Ambulance Transfer Milestone
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <button
-                      onClick={() => setDispatchStatus("EN_ROUTE")}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
-                        dispatchStatus === "EN_ROUTE"
-                          ? "bg-amber-500 text-white border-amber-600 shadow-sm"
-                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                      }`}
-                    >
-                      1. En Route to PHC
-                    </button>
-                    <button
-                      onClick={() => setDispatchStatus("PATIENT_ONBOARD")}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
-                        dispatchStatus === "PATIENT_ONBOARD"
-                          ? "bg-blue-600 text-white border-blue-700 shadow-sm"
-                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                      }`}
-                    >
-                      2. Patient Onboard
-                    </button>
-                    <button
-                      onClick={() => setDispatchStatus("IN_TRANSIT")}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
-                        dispatchStatus === "IN_TRANSIT"
-                          ? "bg-purple-600 text-white border-purple-700 shadow-sm"
-                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                      }`}
-                    >
-                      3. In Transit
-                    </button>
-                    <button
-                      onClick={() => {
-                        setDispatchStatus("ARRIVED");
-                        alert("Patient Handover Confirmed at Hospital Admission Desk! AWS CloudWatch log stream updated.");
-                      }}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
-                        dispatchStatus === "ARRIVED"
-                          ? "bg-green-600 text-white border-green-700 shadow-sm"
-                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                      }`}
-                    >
-                      4. Arrived &amp; Admitted
-                    </button>
-                  </div>
-                </div>
+            {/* Clean Action Buttons & Dispatch Controls */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Emergency Dispatch Actions</h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Control dispatch acknowledgment, hospital reception status, and communications.
+                </p>
               </div>
 
-              {/* Right Column (1 Col): Receiving Hospital Bed & Blood Readiness */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-6">
-                <div>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 uppercase">
-                    Receiving Hospital Protocol
-                  </span>
-                  <h3 className="text-lg font-bold text-slate-900 mt-1">
-                    Pre-Arrival Readiness Checklist
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {parentProfile.preferredFacility} Emergency Obstetric Team
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  onClick={() => alert("Emergency Referral Stream Initialized. Listening for incoming clinician dispatches...")}
+                  className="p-5 rounded-2xl bg-red-50 hover:bg-red-100/80 border border-red-200 text-left transition-all group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center mb-3 shadow-md shadow-red-500/20 group-hover:scale-105 transition-transform">
+                    <AmbulanceIcon className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-sm font-bold text-red-950">Acknowledge Active Referral</h3>
+                  <p className="text-xs text-red-800/80 mt-1">
+                    Accept incoming patient transfer and notify sending facility.
                   </p>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={nicuBedReady}
-                      onChange={(e) => setNicuBedReady(e.target.checked)}
-                      className="mt-1 rounded text-red-600 focus:ring-red-500"
-                    />
-                    <div>
-                      <div className="text-xs font-bold text-slate-800">NICU Bed Level-3 Reserved</div>
-                      <div className="text-[11px] text-gray-500">Neonatal incubator &amp; resuscitation on standby</div>
-                    </div>
-                  </label>
-
-                  <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={magSulfateReady}
-                      onChange={(e) => setMagSulfateReady(e.target.checked)}
-                      className="mt-1 rounded text-red-600 focus:ring-red-500"
-                    />
-                    <div>
-                      <div className="text-xs font-bold text-slate-800">Magnesium Sulfate Prepared</div>
-                      <div className="text-[11px] text-gray-500">Anticonvulsant infusion for eclampsia prevention</div>
-                    </div>
-                  </label>
-
-                  <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={bloodUnitsReady}
-                      onChange={(e) => setBloodUnitsReady(e.target.checked)}
-                      className="mt-1 rounded text-red-600 focus:ring-red-500"
-                    />
-                    <div>
-                      <div className="text-xs font-bold text-slate-800">Cross-Matched Blood Units</div>
-                      <div className="text-[11px] text-gray-500">2 Units {parentProfile.bloodGroup} requested from blood bank</div>
-                    </div>
-                  </label>
-                </div>
-
-                {/* Emergency Contact Hub */}
-                <div className="p-4 rounded-2xl bg-pink-50/60 border border-pink-200">
-                  <span className="text-xs font-bold text-pink-900 block mb-1">
-                    Family Emergency Contact
-                  </span>
-                  <p className="text-xs text-pink-800">
-                    {parentProfile.emergencyContactName} ({parentProfile.emergencyContactRelation})
-                  </p>
-                  <a
-                    href={`tel:${parentProfile.emergencyContactPhone}`}
-                    className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-lg bg-pink-600 text-white font-bold text-xs hover:bg-pink-700 transition-all"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    Call Family: {parentProfile.emergencyContactPhone}
-                  </a>
-                </div>
+                </button>
 
                 <button
-                  onClick={() => alert("Digital Handover completed! Referral status updated in PostgreSQL & CloudWatch audit stream.")}
-                  className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-md"
+                  onClick={() => alert("GPS coordinates broadcasted to receiving hospital network.")}
+                  className="p-5 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition-all group"
                 >
-                  ✓ Confirm Hospital Admission Receipt
+                  <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center mb-3 shadow-md group-hover:scale-105 transition-transform">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-900">Update En-Route GPS Status</h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Broadcast real-time transit telemetry to receiving hospital.
+                  </p>
                 </button>
+
+                <button
+                  onClick={() => alert("Checking hospital bed and NICU readiness status...")}
+                  className="p-5 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition-all group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center mb-3 shadow-md group-hover:scale-105 transition-transform">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-900">Check Hospital Bed Readiness</h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Verify NICU and emergency obstetric bed availability.
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => alert("Initiating emergency direct line to Primary Health Centre...")}
+                  className="p-5 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition-all group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center mb-3 shadow-md group-hover:scale-105 transition-transform">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-900">Direct Emergency Telephony Call</h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Connect directly to sending clinician or on-duty doctor.
+                  </p>
+                </button>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex justify-between items-center text-xs text-gray-500">
+                <span>Status: Awaiting Dispatch Trigger</span>
+                <span>AWS CloudWatch: Connected</span>
               </div>
             </div>
           </section>
