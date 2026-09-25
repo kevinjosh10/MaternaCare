@@ -130,15 +130,26 @@ export async function extractMedicalDocumentWithJina(
   }
 
   // =========================================================================
-  // Strategy 2: Digital PDF Parsing (PDFParse)
+  // Strategy 2: Digital PDF Multi-Page Parsing (PDFParse)
   // =========================================================================
   if (!rawExtractedText && (contentType.includes("pdf") || fileName.toLowerCase().endsWith(".pdf"))) {
     try {
       const parser = new PDFParse({ data: fileBuffer });
       const parsedData = await parser.getText();
-      if (parsedData && parsedData.text && parsedData.text.trim().length > 30) {
-        rawExtractedText = parsedData.text.trim();
-        pageCount = parsedData.total || 1;
+      if (parsedData) {
+        if (parsedData.pages && Array.isArray(parsedData.pages) && parsedData.pages.length > 0) {
+          const pageBlocks = parsedData.pages
+            .filter((p: any) => p.text && p.text.trim().length > 0)
+            .map((p: any) => `### --- PAGE ${p.num} of ${parsedData.total || parsedData.pages.length} ---\n\n${p.text.trim()}`);
+          if (pageBlocks.length > 0) {
+            rawExtractedText = pageBlocks.join("\n\n");
+            pageCount = parsedData.total || parsedData.pages.length;
+          }
+        }
+        if (!rawExtractedText && parsedData.text && parsedData.text.trim().length > 20) {
+          rawExtractedText = parsedData.text.trim();
+          pageCount = parsedData.total || 1;
+        }
       }
       await parser.destroy();
     } catch (pdfErr) {
