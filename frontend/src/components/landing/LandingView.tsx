@@ -11,22 +11,28 @@ export function LandingView({ onOpenAuthModal }: LandingViewProps) {
     <>
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-white pt-16 pb-20 sm:pt-24 sm:pb-28 border-b border-slate-100">
-        <div className="absolute inset-x-0 top-0 h-[36rem] flex-none bg-gradient-to-b from-pink-50 via-rose-50/30 to-white"></div>
+        <div className="absolute inset-x-0 top-0 h-[38rem] flex-none bg-gradient-to-b from-pink-50 via-rose-50/30 to-white"></div>
         <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="max-w-3xl mx-auto">
-            {/* MaternaCare Brand Logo Pill in Hero */}
-            <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/95 shadow-md shadow-pink-500/10 border border-pink-100 ring-1 ring-pink-500/20 mb-8 backdrop-blur-md">
-              <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-pink-500 via-rose-400 to-pink-500 flex items-center justify-center text-white shadow-sm">
-                <LogoIcon className="w-4 h-4" />
+          <div className="max-w-4xl mx-auto">
+            {/* MaternaCare Brand Logo Pill in Hero - Prominent & Big */}
+            <div className="inline-flex items-center gap-3.5 sm:gap-4 px-5 sm:px-7 py-2.5 sm:py-3.5 rounded-full bg-white/95 shadow-xl shadow-pink-500/10 border border-pink-200/80 ring-2 ring-pink-500/20 mb-8 backdrop-blur-md hover:scale-[1.02] transition-transform">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-pink-500 via-rose-400 to-pink-500 flex items-center justify-center text-white shadow-md shadow-pink-500/30 ring-2 ring-pink-100">
+                <LogoIcon className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
-              <span className="text-xs font-bold tracking-tight text-slate-800">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-400">
-                  Materna
+              <div className="flex flex-wrap items-center text-left">
+                <span className="text-lg sm:text-2xl font-black tracking-tight">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-rose-400 to-pink-600">
+                    Materna
+                  </span>
+                  <span className="text-slate-800">Care</span>
                 </span>
-                Care
-                <span className="text-gray-400 font-normal ml-2">| Maternal &amp; Neonatal Intelligence</span>
-              </span>
+                <span className="hidden sm:inline-block mx-3 text-pink-300 font-light text-xl">|</span>
+                <span className="text-xs sm:text-sm font-bold text-pink-900/80 tracking-wide uppercase block sm:inline">
+                  Maternal &amp; Neonatal Intelligence
+                </span>
+              </div>
             </div>
+
             <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-6xl mb-6 leading-tight">
               Continuous Care for{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-400">
