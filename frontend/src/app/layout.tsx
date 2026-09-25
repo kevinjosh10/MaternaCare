@@ -17,6 +17,8 @@ export const metadata: Metadata = {
   description: "AI-assisted maternal and neonatal continuity, risk & emergency referral intelligence.",
 };
 
+import { MaternaAIChat } from "@/components/MaternaAIChat";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,7 +29,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <MaternaAIChat />
+      </body>
     </html>
   );
 }

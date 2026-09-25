@@ -1,0 +1,25 @@
+{
+  "status": "TRAINED_SIMULATED",
+  "epochs": 20,
+  "training_samples": 69,
+  "test_parameters_count": 122,
+  "risk_categories": [
+    "ROUTINE",
+    "PREECLAMPSIA",
+    "GESTATIONAL_DIABETES",
+    "SEVERE_ANEMIA",
+    "FETAL_GROWTH_RESTRICTION",
+    "RH_ISOIMMUNIZATION",
+    "INTRAHEPATIC_CHOLESTASIS",
+    "PRETERM_LABOR",
+    "CRITICAL_CONGENITAL_HEART_DISEASE",
+    "CONGENITAL_HYPOTHYROIDISM",
+    "POSTPARTUM_PREECLAMPSIA_OR_DEPRESSION"
+  ],
+  "severity_levels": [
+    "LOW",
+    "MODERATE",
+    "HIGH",
+    "CRITICAL"
+  ]
+}
