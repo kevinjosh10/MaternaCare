@@ -182,7 +182,54 @@ export function ParentPortal({
             {parentDocuments.length > 0 && (
               <button
                 type="button"
-                onClick={() => { if (onDeleteDocument) { onDeleteDocument(doc.id); } }}
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    localStorage.removeItem(`maternacare_docs_${parentProfile.email || parentProfile.fullName}`);
+                    localStorage.removeItem("maternacare_docs_priya.sharma@example.com");
+                    localStorage.removeItem("maternacare_docs_Priya Sharma");
+                  }
+                  window.location.reload();
+                }}
+                className="text-[11px] text-red-600 hover:text-red-800 font-semibold underline cursor-pointer"
+              >
+                🗑 Clear Old Reports / Reset Cache
+              </button>
+            )}
+          </div>
+
+          {parentDocuments.length === 0 ? (
+            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center text-xs text-gray-500">
+              No documents uploaded yet. Upload your ultrasound scans, blood test results, or prescription slips above to extract every detail into Markdown.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {parentDocuments.map((doc, idx) => {
+                const isExpanded = expandedDocId === doc.id || (expandedDocId === null && idx === 0);
+                return (
+                  <div
+                    key={doc.id}
+                    className="p-4 sm:p-5 rounded-2xl bg-white border-2 border-slate-200 shadow-sm hover:border-pink-300 transition-all space-y-3"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-sm shadow-sm">
+                          📄
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-slate-900">{doc.file_name}</div>
+                          <div className="text-[11px] text-gray-500">
+                            {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : "Recent"} &bull;{" "}
+                            {doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : "Stored"} &bull; Status:{" "}
+                            <span className="text-green-700 font-semibold">{doc.status || "VERIFIED"}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        
+                        <button
+                            type="button"
+                            onClick={() => { if (onDeleteDocument) { onDeleteDocument(doc.id); } }}
                             className="px-3 py-1.5 rounded-xl bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold shadow-sm transition-all"
                           >
                             Delete Report
