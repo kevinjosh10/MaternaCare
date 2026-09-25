@@ -1,10 +1,9 @@
-import { PDFParse } from "pdf-parse";
-import Tesseract from "tesseract.js";
+import pdfParse from "pdf-parse";
 import zlib from "zlib";
 
 /**
  * Universal Medical Document Full-Text OCR & Extraction Engine
- * Connects to Google Colab / Python Backend (Model 5), Tesseract.js, PDFParse, and Jina OCR.
+ * Connects to Google Colab / Python Backend (Model 5), PDFParse, and Jina OCR.
  * Extracts 100% of all pages and text from any document without omissions.
  */
 
@@ -87,25 +86,12 @@ export async function extractMedicalDocumentWithJina(
   // =========================================================================
   if (contentType.includes("pdf") || fileName.toLowerCase().endsWith(".pdf")) {
     try {
-      const parser = new PDFParse({ data: fileBuffer });
-      const parsedData = await parser.getText();
-      if (parsedData) {
-        if (parsedData.pages && Array.isArray(parsedData.pages) && parsedData.pages.length > 0) {
-          const pageBlocks = parsedData.pages
-            .filter((p: any) => p.text && p.text.trim().length > 0)
-            .map((p: any) => `### --- PAGE ${p.num} of ${parsedData.total || parsedData.pages.length} ---\n\n${p.text.trim()}`);
-          if (pageBlocks.length > 0) {
-            rawExtractedText = pageBlocks.join("\n\n");
-            pageCount = parsedData.total || parsedData.pages.length;
-            console.log(`[Native PDF Engine] Extracted ${rawExtractedText.length} chars across ${pageCount} pages instantly.`);
-          }
-        }
-        if (!rawExtractedText && parsedData.text && parsedData.text.trim().length > 20) {
-          rawExtractedText = parsedData.text.trim();
-          pageCount = parsedData.total || 1;
-        }
+      const parsedData = await pdfParse(fileBuffer);
+      if (parsedData && parsedData.text && parsedData.text.trim().length > 20) {
+        rawExtractedText = parsedData.text.trim();
+        pageCount = parsedData.numpages || 1;
+        console.log(`[Native PDF Engine] Extracted ${rawExtractedText.length} chars across ${pageCount} pages instantly.`);
       }
-      await parser.destroy();
     } catch (pdfErr) {
       console.warn("PDFParse extraction note:", pdfErr);
     }
@@ -127,7 +113,7 @@ export async function extractMedicalDocumentWithJina(
       formData.append("file", blob, fileName);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout to prevent Vercel 504
+      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout to allow Colab to process
 
       const colabResponse = await fetch(endpoint, {
         method: "POST",
@@ -159,27 +145,7 @@ export async function extractMedicalDocumentWithJina(
   }
 
   // =========================================================================
-  // Strategy 3: Local Optical OCR (Tesseract.js) for Images & Scans
-  // =========================================================================
-  if (
-    !rawExtractedText &&
-    (contentType.includes("image") ||
-      fileName.endsWith(".png") ||
-      fileName.endsWith(".jpg") ||
-      fileName.endsWith(".jpeg"))
-  ) {
-    try {
-      const { data: { text } } = await Tesseract.recognize(fileBuffer, "eng");
-      if (text && text.trim().length > 10) {
-        rawExtractedText = text.trim();
-      }
-    } catch (tessErr) {
-      console.warn("Tesseract OCR note:", tessErr);
-    }
-  }
-
-  // =========================================================================
-  // Strategy 4: Plain Text / Markdown / CSV / JSON Decoding
+  // Strategy 3: Plain Text / Markdown / CSV / JSON Decoding
   // =========================================================================
   if (
     !rawExtractedText &&

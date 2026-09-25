@@ -14,7 +14,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1140.0",
     "@types/pg": "^8.23.1",
     "next": "16.3.6",
-    "pdf-parse": "^2.4.5",
+    "pdf-parse": "^1.1.1",
     "pg": "^8.23.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
