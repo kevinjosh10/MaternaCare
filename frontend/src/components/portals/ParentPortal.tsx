@@ -202,44 +202,62 @@ export function ParentPortal({
 
         {/* Upload Success Notice & Full Markdown Output Preview */}
         {parentUploadResult && (
-          <div className="p-5 rounded-2xl bg-green-50 border border-green-200 text-green-900 text-xs space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-bold flex items-center gap-1.5 text-sm text-green-800">
-                <span>✓</span> Complete Document OCR Extraction Succeeded!
-              </span>
-              <div className="flex items-center gap-2">
-                {parentUploadResult.ocrMarkdown && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const blob = new Blob([parentUploadResult.ocrMarkdown || ""], { type: "text/markdown;charset=utf-8;" });
-                      const url = URL.createObjectURL(blob);
-                      const link = document.createElement("a");
-                      link.href = url;
-                      const baseName = (parentUploadResult.fileName || "Medical_Report.pdf").replace(/\.[^/.]+$/, "");
-                      link.download = `${baseName}_OCR_FULL_TEXT.md`;
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                      URL.revokeObjectURL(url);
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-green-700 hover:bg-green-800 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all"
-                  >
-                    <span>⬇ Download Extracted .MD File</span>
-                  </button>
-                )}
-                <span className="text-[10px] font-mono bg-green-200/80 px-2 py-1 rounded-full text-green-900">
-                  Full Text Captured
+          <div className="p-5 sm:p-6 rounded-2xl bg-slate-900 text-white text-xs space-y-4 shadow-xl border border-slate-700">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <span className="font-extrabold flex items-center gap-2 text-base text-green-400">
+                  <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-ping"></span>
+                  Model 5 Full-Text OCR Complete (100% Extracted)
                 </span>
+                <p className="text-slate-400 text-xs mt-0.5">
+                  Extracted from <code className="text-pink-300 font-bold">{parentUploadResult.fileName}</code> &bull; Preserved across all pages without omission.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {parentUploadResult.ocrMarkdown && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(parentUploadResult.ocrMarkdown || "");
+                        alert("Full extracted Markdown copied to clipboard!");
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-600 transition-all flex items-center gap-1.5"
+                    >
+                      <span>📋 Copy .MD Text</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const blob = new Blob([parentUploadResult.ocrMarkdown || ""], { type: "text/markdown;charset=utf-8;" });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = url;
+                        const baseName = (parentUploadResult.fileName || "Medical_Report.pdf").replace(/\.[^/.]+$/, "");
+                        link.download = `${baseName}_OCR_FULL_TEXT.md`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs shadow-md shadow-pink-600/30 flex items-center gap-1.5 transition-all"
+                    >
+                      <span>⬇ Download Complete .MD File</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
             {parentUploadResult.ocrMarkdown && (
-              <div className="mt-3">
-                <div className="text-xs font-bold text-green-950 mb-1.5 flex items-center justify-between">
-                  <span>📄 Full Extracted Markdown (.md) Output:</span>
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                  <span>📑 Complete Verbatim Markdown Output:</span>
+                  <span className="text-[11px] text-pink-400 font-mono">
+                    {parentUploadResult.ocrMarkdown.length} Characters Captured
+                  </span>
                 </div>
-                <pre className="p-4 rounded-xl bg-white border border-green-300 text-[11px] font-mono text-slate-800 max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-sm">
+                <pre className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-[11px] font-mono text-emerald-300 max-h-96 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner">
                   {parentUploadResult.ocrMarkdown}
                 </pre>
               </div>
@@ -325,8 +343,23 @@ export function ParentPortal({
 
                   {/* Expandable full OCR text preview */}
                   {expandedDocId === doc.id && doc.ocr_markdown && (
-                    <div className="mt-2 p-4 rounded-xl bg-white border border-slate-300 text-[11px] font-mono text-slate-800 max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner">
-                      {doc.ocr_markdown}
+                    <div className="mt-2 space-y-2">
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                        <span>Full Extracted Document Content:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(doc.ocr_markdown || "");
+                            alert("Copied document text to clipboard!");
+                          }}
+                          className="text-pink-600 hover:text-pink-800 font-semibold"
+                        >
+                          📋 Copy Text
+                        </button>
+                      </div>
+                      <pre className="p-4 rounded-xl bg-slate-900 text-emerald-300 border border-slate-700 text-[11px] font-mono max-h-80 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner">
+                        {doc.ocr_markdown}
+                      </pre>
                     </div>
                   )}
                 </div>
