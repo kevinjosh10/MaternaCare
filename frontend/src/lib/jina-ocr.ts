@@ -83,9 +83,38 @@ export async function extractMedicalDocumentWithJina(
     "https://unearned-overheat-amuser.ngrok-free.dev";
 
   // =========================================================================
-  // Strategy 1: Forward to Google Colab / Python Backend (Model 5 OCR Service)
+  // Strategy 1: Instant Multi-Page PDF Parser (Super-Fast & Complete)
   // =========================================================================
-  if (COLAB_OCR_URL) {
+  if (contentType.includes("pdf") || fileName.toLowerCase().endsWith(".pdf")) {
+    try {
+      const parser = new PDFParse({ data: fileBuffer });
+      const parsedData = await parser.getText();
+      if (parsedData) {
+        if (parsedData.pages && Array.isArray(parsedData.pages) && parsedData.pages.length > 0) {
+          const pageBlocks = parsedData.pages
+            .filter((p: any) => p.text && p.text.trim().length > 0)
+            .map((p: any) => `### --- PAGE ${p.num} of ${parsedData.total || parsedData.pages.length} ---\n\n${p.text.trim()}`);
+          if (pageBlocks.length > 0) {
+            rawExtractedText = pageBlocks.join("\n\n");
+            pageCount = parsedData.total || parsedData.pages.length;
+            console.log(`[Native PDF Engine] Extracted ${rawExtractedText.length} chars across ${pageCount} pages instantly.`);
+          }
+        }
+        if (!rawExtractedText && parsedData.text && parsedData.text.trim().length > 20) {
+          rawExtractedText = parsedData.text.trim();
+          pageCount = parsedData.total || 1;
+        }
+      }
+      await parser.destroy();
+    } catch (pdfErr) {
+      console.warn("PDFParse extraction note:", pdfErr);
+    }
+  }
+
+  // =========================================================================
+  // Strategy 2: Forward to Google Colab / Python Backend (Model 5 GPU OCR)
+  // =========================================================================
+  if (!rawExtractedText && COLAB_OCR_URL) {
     try {
       const endpoint = COLAB_OCR_URL.endsWith("/api/ocr")
         ? COLAB_OCR_URL
@@ -98,7 +127,7 @@ export async function extractMedicalDocumentWithJina(
       formData.append("file", blob, fileName);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for multi-page documents
+      const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout to prevent Vercel 504
 
       const colabResponse = await fetch(endpoint, {
         method: "POST",
@@ -126,34 +155,6 @@ export async function extractMedicalDocumentWithJina(
       }
     } catch (colabErr) {
       console.warn("[Model 5 OCR] Colab endpoint not active or timed out, using local engines.");
-    }
-  }
-
-  // =========================================================================
-  // Strategy 2: Digital PDF Multi-Page Parsing (PDFParse)
-  // =========================================================================
-  if (!rawExtractedText && (contentType.includes("pdf") || fileName.toLowerCase().endsWith(".pdf"))) {
-    try {
-      const parser = new PDFParse({ data: fileBuffer });
-      const parsedData = await parser.getText();
-      if (parsedData) {
-        if (parsedData.pages && Array.isArray(parsedData.pages) && parsedData.pages.length > 0) {
-          const pageBlocks = parsedData.pages
-            .filter((p: any) => p.text && p.text.trim().length > 0)
-            .map((p: any) => `### --- PAGE ${p.num} of ${parsedData.total || parsedData.pages.length} ---\n\n${p.text.trim()}`);
-          if (pageBlocks.length > 0) {
-            rawExtractedText = pageBlocks.join("\n\n");
-            pageCount = parsedData.total || parsedData.pages.length;
-          }
-        }
-        if (!rawExtractedText && parsedData.text && parsedData.text.trim().length > 20) {
-          rawExtractedText = parsedData.text.trim();
-          pageCount = parsedData.total || 1;
-        }
-      }
-      await parser.destroy();
-    } catch (pdfErr) {
-      console.warn("PDFParse extraction note:", pdfErr);
     }
   }
 
