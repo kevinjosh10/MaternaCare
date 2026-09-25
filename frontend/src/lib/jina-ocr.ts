@@ -94,10 +94,13 @@ export async function extractMedicalDocumentWithJina(
       formData.append("file", blob, fileName);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for multi-page documents
 
       const colabResponse = await fetch(endpoint, {
         method: "POST",
+        headers: {
+          "ngrok-skip-browser-warning": "1",
+        },
         body: formData,
         signal: controller.signal,
       });
