@@ -1,21 +1,16 @@
 # ==============================================================================
-# MaternaCare Model 5: Google Colab Optical Character Recognition (OCR) Microservice
+# MaternaCare Model 5: Google Colab Optical Character Recognition (OCR) Engine
 # ==============================================================================
-# Instructions for Google Colab:
-# 1. Open Google Colab (https://colab.research.google.com)
-# 2. Paste and run this script in a Colab Cell
-# 3. Enter your ngrok authentication token when prompted
-# 4. Copy the generated public ngrok URL (e.g., https://xxxx.ngrok-free.app)
-# 5. Set COLAB_OCR_URL=https://xxxx.ngrok-free.app in your Next.js .env.local file
+# 100% Free - Works out-of-the-box in Google Colab (NO ngrok token required!)
+# Uses Cloudflare Quick Tunnels + GPU EasyOCR + PyPDF + PyTesseract
 # ==============================================================================
-
-"""
-!pip install fastapi uvicorn pyngrok python-multipart pypdf pdf2image pytesseract pillow easyocr
-!apt-get install -y poppler-utils tesseract-ocr tesseract-ocr-eng
-"""
 
 import io
 import os
+import re
+import time
+import subprocess
+import threading
 import uvicorn
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,7 +20,7 @@ import pdf2image
 import pytesseract
 import easyocr
 
-app = FastAPI(title="MaternaCare Model 5 - OCR & Document Intelligence Engine")
+app = FastAPI(title="MaternaCare Model 5 OCR Microservice")
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,8 +30,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize EasyOCR reader (English)
-reader = easyocr.Reader(['en'], gpu=True)
+print("⏳ Initializing EasyOCR GPU Engine...")
+# Initialize reader on GPU (falls back to CPU if no CUDA)
+try:
+    reader = easyocr.Reader(['en'], gpu=True)
+except Exception:
+    reader = easyocr.Reader(['en'], gpu=False)
+print("✅ EasyOCR Engine Loaded & Ready!")
 
 @app.get("/")
 def home():
@@ -44,7 +44,7 @@ def home():
         "status": "online",
         "service": "MaternaCare Model 5 OCR Microservice",
         "supported_formats": ["PDF", "PNG", "JPG", "JPEG", "TIFF"],
-        "engine": "EasyOCR + PyTesseract + PyPDF"
+        "engine": "GPU EasyOCR + PyPDF + PyTesseract"
     }
 
 @app.post("/api/ocr")
@@ -54,12 +54,12 @@ async def extract_document_text(file: UploadFile = File(...)):
     """
     try:
         contents = await file.read()
-        filename = file.filename or "uploaded_document"
+        filename = file.filename or "uploaded_document.pdf"
         extracted_pages = []
         is_pdf = filename.lower().endswith(".pdf") or (file.content_type and "pdf" in file.content_type)
 
         if is_pdf:
-            # 1. First attempt: Direct digital text extraction from all PDF pages
+            # 1. Digital PDF extraction across all pages
             try:
                 pdf_file = io.BytesIO(contents)
                 reader_pdf = PdfReader(pdf_file)
@@ -67,7 +67,7 @@ async def extract_document_text(file: UploadFile = File(...)):
                 
                 for idx, page in enumerate(reader_pdf.pages):
                     page_text = page.extract_text()
-                    if page_text and len(page_text.strip()) > 30:
+                    if page_text and len(page_text.strip()) > 20:
                         extracted_pages.append(f"### --- PAGE {idx + 1} of {total_pages} ---\n\n{page_text.strip()}")
             except Exception as e:
                 print(f"Digital PDF read note: {e}")
@@ -77,14 +77,13 @@ async def extract_document_text(file: UploadFile = File(...)):
                 try:
                     images = pdf2image.convert_from_bytes(contents)
                     for idx, img in enumerate(images):
-                        # Convert PIL Image to EasyOCR
                         img_byte_arr = io.BytesIO()
                         img.save(img_byte_arr, format='PNG')
                         ocr_results = reader.readtext(img_byte_arr.getvalue(), detail=0)
                         page_text = "\n".join(ocr_results).strip()
                         
                         # Fallback to Tesseract if EasyOCR missed lines
-                        if len(page_text) < 50:
+                        if len(page_text) < 40:
                             page_text = pytesseract.image_to_string(img).strip()
 
                         if page_text:
@@ -138,21 +137,52 @@ async def extract_document_text(file: UploadFile = File(...)):
     except Exception as general_err:
         raise HTTPException(status_code=500, detail=f"OCR Server Error: {str(general_err)}")
 
-# Ngrok tunnel setup
+def run_server():
+    # 1. Start FastAPI server in background thread
+    def start_uvicorn():
+        uvicorn.run(app, host="127.0.0.1", port=8000, log_level="warning")
+
+    server_thread = threading.Thread(target=start_uvicorn, daemon=True)
+    server_thread.start()
+    time.sleep(2)
+    print("✅ FastAPI Server listening on http://127.0.0.1:8000")
+
+    # 2. Download and launch Cloudflare Quick Tunnel (Free, no account needed)
+    subprocess.run(["wget", "-q", "-nc", "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"])
+    subprocess.run(["chmod", "+x", "cloudflared-linux-amd64"])
+
+    print("🌐 Launching Free Cloudflare Public Tunnel (No Signup / No Token Required)...")
+    tunnel_proc = subprocess.Popen(
+        ["./cloudflared-linux-amd64", "tunnel", "--url", "http://127.0.0.1:8000"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
+
+    public_url = None
+    for _ in range(40):
+        line = tunnel_proc.stderr.readline()
+        match = re.search(r"https://[a-zA-Z0-9-]+\.trycloudflare\.com", line)
+        if match:
+            public_url = match.group(0)
+            break
+        time.sleep(0.3)
+
+    if public_url:
+        print("\n" + "="*80)
+        print("🚀 MATERNACARE MODEL 5 OCR SERVICE IS RUNNING!")
+        print(f"👉 PUBLIC API URL: {public_url}")
+        print(f"👉 COPY AND SET IN YOUR NEXT.JS .env.local: COLAB_OCR_URL={public_url}")
+        print("="*80 + "\n")
+    else:
+        print("⚠️ Tunnel initializing in background. Check console output for trycloudflare.com link.")
+
+    # Keep alive in Colab
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("Shutting down OCR service.")
+
 if __name__ == "__main__":
-    from pyngrok import ngrok
-    
-    # Optional: Set ngrok token
-    NGROK_TOKEN = os.getenv("NGROK_TOKEN", "")
-    if NGROK_TOKEN:
-        ngrok.set_auth_token(NGROK_TOKEN)
-
-    # Open a tunnel on port 8000
-    public_url = ngrok.connect(8000).public_url
-    print("\n" + "="*80)
-    print("🚀 MATERNACARE MODEL 5 OCR SERVICE IS RUNNING!")
-    print(f"👉 PUBLIC COLAB API URL: {public_url}")
-    print(f"👉 SET IN NEXT.JS .env.local: COLAB_OCR_URL={public_url}")
-    print("="*80 + "\n")
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    run_server()
