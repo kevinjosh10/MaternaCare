@@ -58,21 +58,21 @@ interface UploadedDocumentResult {
 export default function Home() {
   // Modal & Portal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [userType, setUserType] = useState<"clinician" | "parent">("clinician");
+  const [userType, setUserType] = useState<"clinician" | "parent" | "ambulance">("clinician");
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
 
   // Auth Inputs
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [signupName, setSignupName] = useState("");
-  const [signupRole, setSignupRole] = useState("Frontline Health Worker");
+  const [signupRole, setSignupRole] = useState("Emergency EMT Lead");
   const [signupFacility, setSignupFacility] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
   // Active Authenticated State
-  const [loggedInRole, setLoggedInRole] = useState<"clinician" | "parent" | null>(null);
+  const [loggedInRole, setLoggedInRole] = useState<"clinician" | "parent" | "ambulance" | null>(null);
 
   // Parent Profile State
   const [parentProfile, setParentProfile] = useState<ParentProfile>(initialParentProfile);
@@ -85,6 +85,15 @@ export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<UploadedDocumentResult | null>(null);
   const [verifiedEntities, setVerifiedEntities] = useState<string[]>([]);
+
+  // Ambulance & Hospital Dispatch State
+  const [dispatchStatus, setDispatchStatus] = useState<
+    "DISPATCHED" | "EN_ROUTE" | "PATIENT_ONBOARD" | "IN_TRANSIT" | "ARRIVED"
+  >("DISPATCHED");
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [nicuBedReady, setNicuBedReady] = useState(true);
+  const [magSulfateReady, setMagSulfateReady] = useState(true);
+  const [bloodUnitsReady, setBloodUnitsReady] = useState(false);
 
   // Health Check State
   const [awsStatus, setAwsStatus] = useState<{
@@ -105,7 +114,7 @@ export default function Home() {
   }, []);
 
   // Open modal helper
-  const openAuthModal = (type: "clinician" | "parent", mode: "login" | "signup" = "login") => {
+  const openAuthModal = (type: "clinician" | "parent" | "ambulance", mode: "login" | "signup" = "login") => {
     setUserType(type);
     setAuthMode(mode);
     setErrorMessage("");
@@ -128,6 +137,19 @@ export default function Home() {
           setPassword("");
         } else {
           setErrorMessage("Invalid credentials. For Clinician demo use: admin / 123");
+        }
+      } else if (userType === "ambulance") {
+        if (
+          (username.trim() === "ambulance" && password === "123") ||
+          (username.trim() === "hospital" && password === "123") ||
+          (username.trim() === "admin" && password === "123")
+        ) {
+          setLoggedInRole("ambulance");
+          setIsModalOpen(false);
+          setUsername("");
+          setPassword("");
+        } else {
+          setErrorMessage("Invalid credentials. For Ambulance & Hospital demo use: ambulance / 123");
         }
       } else {
         // Parent Login
@@ -159,8 +181,10 @@ export default function Home() {
         setParentProfile(newProfile);
         setLoggedInRole("parent");
         setIsModalOpen(false);
-        // Sync new account with AWS RDS & CloudWatch
         saveProfileToAws(newProfile);
+      } else if (userType === "ambulance") {
+        setLoggedInRole("ambulance");
+        setIsModalOpen(false);
       } else {
         setSuccessMessage(`Account created for ${signupName}. Please log in with admin / 123.`);
         setAuthMode("login");
@@ -172,6 +196,9 @@ export default function Home() {
   const handleAutoFill = () => {
     if (userType === "clinician") {
       setUsername("admin");
+      setPassword("123");
+    } else if (userType === "ambulance") {
+      setUsername("ambulance");
       setPassword("123");
     } else {
       setUsername("parent");
@@ -207,7 +234,6 @@ export default function Home() {
       }
     } catch (err) {
       console.error("API call error:", err);
-      // Resilient local feedback
       setProfileSaveSuccess(true);
       setAwsSyncDetails("Saved locally (AWS backend retry queued)");
     } finally {
@@ -240,7 +266,6 @@ export default function Home() {
       const data = await response.json();
       if (response.ok && data.success) {
         setUploadResult(data);
-        // Pre-populate human verification checklist
         const entities: string[] = [];
         if (data.extractedEntities?.previousComplications) {
           entities.push(...data.extractedEntities.previousComplications);
@@ -262,7 +287,6 @@ export default function Home() {
     }
   };
 
-  // Commit verified history to patient memory
   const handleCommitVerifiedHistory = () => {
     const updatedConditions = verifiedEntities.join(", ");
     const updated = {
@@ -276,6 +300,23 @@ export default function Home() {
     alert("Verified history committed to trusted Patient Health Memory on AWS RDS!");
     setUploadResult(null);
     setUploadFile(null);
+  };
+
+  const playEmergencyVoiceAlert = () => {
+    setIsPlayingAudio(true);
+    const synth = typeof window !== "undefined" ? window.speechSynthesis : null;
+    if (synth) {
+      const utterance = new SpeechSynthesisUtterance(
+        `Critical Emergency Referral for pregnant patient Priya Sharma, 32 weeks gestational age. Sending facility: Primary Health Centre Rampur. Verified warning signs: rapid blood pressure spike of plus 24 millimeters mercury, severe proteinuria, and verified past history of preeclampsia. Please prepare Magnesium Sulfate and Level 3 NICU bed at District Hospital immediately.`
+      );
+      utterance.rate = 1.0;
+      utterance.pitch = 1.05;
+      utterance.onend = () => setIsPlayingAudio(false);
+      utterance.onerror = () => setIsPlayingAudio(false);
+      synth.speak(utterance);
+    } else {
+      setTimeout(() => setIsPlayingAudio(false), 4000);
+    }
   };
 
   return (
@@ -307,7 +348,7 @@ export default function Home() {
             </span>
           </div>
 
-          <nav className="flex items-center gap-3 sm:gap-4">
+          <nav className="flex items-center gap-2 sm:gap-3">
             {loggedInRole === "parent" ? (
               <div className="flex items-center gap-3">
                 <span className="text-xs font-semibold text-pink-700 bg-pink-50 px-3 py-1.5 rounded-full border border-pink-200 flex items-center gap-1.5">
@@ -334,23 +375,42 @@ export default function Home() {
                   Log Out
                 </button>
               </div>
+            ) : loggedInRole === "ambulance" ? (
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-semibold text-red-700 bg-red-50 px-3 py-1.5 rounded-full border border-red-200 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+                  Ambulance Unit 108 &bull; Active Dispatch
+                </span>
+                <button
+                  onClick={() => setLoggedInRole(null)}
+                  className="text-xs text-gray-500 hover:text-slate-800 font-medium px-2 py-1"
+                >
+                  Log Out
+                </button>
+              </div>
             ) : (
               <>
                 <button
                   onClick={() => openAuthModal("parent", "login")}
-                  className="text-sm font-medium text-pink-600 hover:text-pink-700 transition-colors px-2 py-1.5"
+                  className="text-xs sm:text-sm font-medium text-pink-600 hover:text-pink-700 transition-colors px-2 py-1.5"
                 >
                   Parent Portal
                 </button>
                 <button
                   onClick={() => openAuthModal("clinician", "login")}
-                  className="text-sm font-medium text-gray-600 hover:text-slate-900 transition-colors px-2 py-1.5"
+                  className="text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors px-2 py-1.5"
                 >
-                  Clinician Sign In
+                  Clinician
+                </button>
+                <button
+                  onClick={() => openAuthModal("ambulance", "login")}
+                  className="text-xs sm:text-sm font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1.5 rounded-full transition-all flex items-center gap-1"
+                >
+                  🚑 Ambulance / Hospital
                 </button>
                 <button
                   onClick={() => openAuthModal("parent", "signup")}
-                  className="rounded-full bg-gradient-to-r from-pink-500 to-rose-400 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-pink-600 hover:to-rose-500 transition-all"
+                  className="rounded-full bg-gradient-to-r from-pink-500 to-rose-400 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-sm hover:from-pink-600 hover:to-rose-500 transition-all"
                 >
                   Sign Up
                 </button>
@@ -363,9 +423,253 @@ export default function Home() {
       {/* Main Content Area */}
       <main className="flex-1">
         {/* ========================================================================= */}
-        {/* 1. CLINICIAN TRIAGE & HEALTH MEMORY PORTAL */}
+        {/* 1. AMBULANCE & RECEIVING HOSPITAL DISPATCH PORTAL */}
         {/* ========================================================================= */}
-        {loggedInRole === "clinician" ? (
+        {loggedInRole === "ambulance" ? (
+          <section className="py-10 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-8">
+            {/* Top Emergency Dispatch Header */}
+            <div className="bg-gradient-to-r from-slate-900 via-red-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-red-900/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/30 text-red-300 text-xs font-bold mb-3 border border-red-500/40">
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+                  LIVE EMERGENCY DISPATCH FEED &bull; AWS CLOUDWATCH LOGGED
+                </div>
+                <h1 className="text-2xl sm:text-4xl font-black tracking-tight flex items-center gap-3">
+                  <span>🚑 Emergency Ambulance &amp; Receiving Hospital Hub</span>
+                </h1>
+                <p className="text-slate-300 text-xs sm:text-sm mt-1">
+                  Assigned Unit: <span className="text-white font-bold">ALS Ambulance 108-A</span> &bull; Destination: <span className="text-white font-bold">{parentProfile.preferredFacility}</span>
+                </p>
+              </div>
+
+              {/* Status Stepper Summary */}
+              <div className="bg-black/40 border border-white/10 rounded-2xl p-4 min-w-[220px] text-center">
+                <div className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Transfer Status</div>
+                <div className="text-xl font-extrabold text-red-400 mt-1">
+                  {dispatchStatus.replace(/_/g, " ")}
+                </div>
+                <span className="inline-block mt-1 text-[10px] bg-red-500/20 text-red-200 px-2.5 py-0.5 rounded-full font-semibold border border-red-500/30">
+                  ETA: ~12 Mins (7.8 km)
+                </span>
+              </div>
+            </div>
+
+            {/* Main Ambulance Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left Column (2 Cols): Clinical Referral Handover Summary & Actions */}
+              <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                  <div>
+                    <span className="text-[11px] font-bold text-red-600 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200 uppercase tracking-wide">
+                      High-Priority Referral Handover
+                    </span>
+                    <h2 className="text-2xl font-bold text-slate-900 mt-1">
+                      {parentProfile.fullName} ({parentProfile.age}y, {parentProfile.gravidity}/{parentProfile.parity})
+                    </h2>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-slate-800 block">Gestational Age: {parentProfile.gestationalWeeks} Weeks</span>
+                    <span className="text-xs text-gray-500 font-medium">Blood Group: <strong className="text-slate-900">{parentProfile.bloodGroup}</strong></span>
+                  </div>
+                </div>
+
+                {/* Warning Signs & Telephony Voice Brief */}
+                <div className="p-5 rounded-2xl bg-red-50/80 border border-red-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-red-900 uppercase tracking-wide flex items-center gap-1.5">
+                      🚨 Verified Warning Signs from Clinician Triage
+                    </span>
+                    <span className="text-[11px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">
+                      Preeclampsia Cluster
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-red-950 leading-relaxed">
+                    <strong>Reason for Emergency Dispatch:</strong> Rapid Blood Pressure spike (+24 mmHg MAP velocity), Severe Proteinuria (++), Persistent Headache, and verified history of <strong>{parentProfile.medicalConditions}</strong>.
+                  </p>
+
+                  <div className="pt-2 flex flex-wrap items-center gap-3">
+                    <button
+                      onClick={playEmergencyVoiceAlert}
+                      disabled={isPlayingAudio}
+                      className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-500/20 transition-all flex items-center gap-2"
+                    >
+                      {isPlayingAudio ? "🔊 Playing Voice Handover..." : "🔊 Play Synthesized Clinician Voice Alert"}
+                    </button>
+                    <span className="text-[11px] text-red-700 font-medium">
+                      Simulates Twilio Telephony / Text-to-Speech API Call
+                    </span>
+                  </div>
+                </div>
+
+                {/* Live In-Transit Vitals & Emergency Parameters */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3">
+                    Live Telemetry &amp; In-Transit Parameters
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                      <div className="text-[10px] text-gray-500 uppercase font-bold">Blood Pressure</div>
+                      <div className="text-lg font-black text-rose-600 mt-0.5">144/94</div>
+                      <span className="text-[10px] text-rose-500 font-semibold">Elevated (MAP: 110)</span>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                      <div className="text-[10px] text-gray-500 uppercase font-bold">Fetal Heart Rate</div>
+                      <div className="text-lg font-black text-emerald-600 mt-0.5">148 bpm</div>
+                      <span className="text-[10px] text-emerald-600 font-semibold">Normal Baseline</span>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                      <div className="text-[10px] text-gray-500 uppercase font-bold">SpO2 Oxygen</div>
+                      <div className="text-lg font-black text-blue-600 mt-0.5">99%</div>
+                      <span className="text-[10px] text-blue-500 font-semibold">On 2L Oxygen</span>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                      <div className="text-[10px] text-gray-500 uppercase font-bold">Known Allergy</div>
+                      <div className="text-sm font-bold text-red-600 mt-1 truncate">
+                        {parentProfile.knownAllergies || "Penicillin"}
+                      </div>
+                      <span className="text-[10px] text-gray-400">Strict Warning</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dispatch Lifecycle Stepper Actions */}
+                <div className="pt-2 border-t border-slate-100">
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-3">
+                    Update Ambulance Transfer Milestone
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button
+                      onClick={() => setDispatchStatus("EN_ROUTE")}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                        dispatchStatus === "EN_ROUTE"
+                          ? "bg-amber-500 text-white border-amber-600 shadow-sm"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      1. En Route to PHC
+                    </button>
+                    <button
+                      onClick={() => setDispatchStatus("PATIENT_ONBOARD")}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                        dispatchStatus === "PATIENT_ONBOARD"
+                          ? "bg-blue-600 text-white border-blue-700 shadow-sm"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      2. Patient Onboard
+                    </button>
+                    <button
+                      onClick={() => setDispatchStatus("IN_TRANSIT")}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                        dispatchStatus === "IN_TRANSIT"
+                          ? "bg-purple-600 text-white border-purple-700 shadow-sm"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      3. In Transit
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDispatchStatus("ARRIVED");
+                        alert("Patient Handover Confirmed at Hospital Admission Desk! AWS CloudWatch log stream updated.");
+                      }}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                        dispatchStatus === "ARRIVED"
+                          ? "bg-green-600 text-white border-green-700 shadow-sm"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      4. Arrived &amp; Admitted
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column (1 Col): Receiving Hospital Bed & Blood Readiness */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-6">
+                <div>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 uppercase">
+                    Receiving Hospital Protocol
+                  </span>
+                  <h3 className="text-lg font-bold text-slate-900 mt-1">
+                    Pre-Arrival Readiness Checklist
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {parentProfile.preferredFacility} Emergency Obstetric Team
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={nicuBedReady}
+                      onChange={(e) => setNicuBedReady(e.target.checked)}
+                      className="mt-1 rounded text-red-600 focus:ring-red-500"
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-slate-800">NICU Bed Level-3 Reserved</div>
+                      <div className="text-[11px] text-gray-500">Neonatal incubator &amp; resuscitation on standby</div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={magSulfateReady}
+                      onChange={(e) => setMagSulfateReady(e.target.checked)}
+                      className="mt-1 rounded text-red-600 focus:ring-red-500"
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-slate-800">Magnesium Sulfate Prepared</div>
+                      <div className="text-[11px] text-gray-500">Anticonvulsant infusion for eclampsia prevention</div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={bloodUnitsReady}
+                      onChange={(e) => setBloodUnitsReady(e.target.checked)}
+                      className="mt-1 rounded text-red-600 focus:ring-red-500"
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-slate-800">Cross-Matched Blood Units</div>
+                      <div className="text-[11px] text-gray-500">2 Units {parentProfile.bloodGroup} requested from blood bank</div>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Emergency Contact Hub */}
+                <div className="p-4 rounded-2xl bg-pink-50/60 border border-pink-200">
+                  <span className="text-xs font-bold text-pink-900 block mb-1">
+                    Family Emergency Contact
+                  </span>
+                  <p className="text-xs text-pink-800">
+                    {parentProfile.emergencyContactName} ({parentProfile.emergencyContactRelation})
+                  </p>
+                  <a
+                    href={`tel:${parentProfile.emergencyContactPhone}`}
+                    className="inline-block mt-2 px-3 py-1.5 rounded-lg bg-pink-600 text-white font-bold text-xs hover:bg-pink-700 transition-all"
+                  >
+                    📞 Call Family: {parentProfile.emergencyContactPhone}
+                  </a>
+                </div>
+
+                <button
+                  onClick={() => alert("Digital Handover completed! Referral status updated in PostgreSQL & CloudWatch audit stream.")}
+                  className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-md"
+                >
+                  ✓ Confirm Hospital Admission Receipt
+                </button>
+              </div>
+            </div>
+          </section>
+        ) : loggedInRole === "clinician" ? (
+          /* ========================================================================= */
+          /* 2. CLINICIAN TRIAGE & HEALTH MEMORY PORTAL */
+          /* ========================================================================= */
           <section className="py-10 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-8">
             {/* Top Bar with Live AWS Sync Status */}
             <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -468,10 +772,12 @@ export default function Home() {
                 {/* Emergency Action Buttons */}
                 <div className="pt-2 flex flex-wrap gap-3">
                   <button
-                    onClick={() => alert("Simulating Emergency Referral Dispatch to District Hospital via Google Maps & Telephony...")}
+                    onClick={() => {
+                      setLoggedInRole("ambulance");
+                    }}
                     className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-500/20 transition-all flex items-center gap-1.5"
                   >
-                    🚨 Initiate Emergency Referral Call
+                    🚨 Dispatch to Ambulance &amp; Hospital Hub &rarr;
                   </button>
                   <button
                     onClick={() => alert("Exporting encrypted clinical handover report to Amazon S3...")}
@@ -561,7 +867,7 @@ export default function Home() {
           </section>
         ) : loggedInRole === "parent" ? (
           /* ========================================================================= */
-          /* 2. PARENT PROFILE & MATERNAL HUB */
+          /* 3. PARENT PROFILE & MATERNAL HUB */
           /* ========================================================================= */
           <section className="py-10 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
             {/* Header Banner */}
@@ -883,7 +1189,7 @@ export default function Home() {
           </section>
         ) : (
           /* ========================================================================= */
-          /* 3. DEFAULT LANDING PAGE VIEW */
+          /* 4. DEFAULT LANDING PAGE VIEW */
           /* ========================================================================= */
           <>
             {/* Hero Section */}
@@ -926,19 +1232,25 @@ export default function Home() {
                     and emergency referral intelligence into one unbroken health journey.
                   </p>
 
-                  {/* Call to Action Buttons */}
-                  <div className="flex flex-wrap items-center justify-center gap-4">
+                  {/* 3 Call to Action Buttons */}
+                  <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
                     <button
                       onClick={() => openAuthModal("parent", "login")}
-                      className="rounded-full bg-gradient-to-r from-pink-500 to-rose-400 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-pink-500/20 hover:from-pink-600 hover:to-rose-500 transition-all"
+                      className="rounded-full bg-gradient-to-r from-pink-500 to-rose-400 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-pink-500/20 hover:from-pink-600 hover:to-rose-500 transition-all"
                     >
-                      Parent Portal &rarr;
+                      👶 Parent Portal &rarr;
                     </button>
                     <button
                       onClick={() => openAuthModal("clinician", "login")}
-                      className="rounded-full bg-slate-900 px-8 py-3.5 text-sm font-semibold text-white shadow-md hover:bg-slate-800 transition-all"
+                      className="rounded-full bg-slate-900 px-6 py-3.5 text-sm font-semibold text-white shadow-md hover:bg-slate-800 transition-all"
                     >
-                      Clinical Staff Login
+                      🩺 Clinician Triage
+                    </button>
+                    <button
+                      onClick={() => openAuthModal("ambulance", "login")}
+                      className="rounded-full bg-red-600 hover:bg-red-700 px-6 py-3.5 text-sm font-semibold text-white shadow-md shadow-red-500/20 transition-all flex items-center gap-1.5"
+                    >
+                      🚑 Ambulance / Hospital
                     </button>
                   </div>
                 </div>
@@ -1031,7 +1343,7 @@ export default function Home() {
         )}
       </main>
 
-      {/* Interactive Auth Modal (Triggered by Button Clicks) */}
+      {/* Interactive Auth Modal (Supports 3 Portals) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 relative border border-pink-100 max-h-[90vh] overflow-y-auto">
@@ -1043,21 +1355,21 @@ export default function Home() {
               &times;
             </button>
 
-            {/* Portal Role Switcher */}
-            <div className="flex bg-slate-100 p-1 rounded-2xl mb-4">
+            {/* 3-Role Portal Switcher */}
+            <div className="grid grid-cols-3 bg-slate-100 p-1 rounded-2xl mb-4 text-center">
               <button
                 type="button"
                 onClick={() => {
                   setUserType("parent");
                   setErrorMessage("");
                 }}
-                className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all ${
+                className={`py-2 text-[11px] sm:text-xs font-bold rounded-xl transition-all ${
                   userType === "parent"
                     ? "bg-white text-pink-600 shadow-sm"
                     : "text-slate-500 hover:text-slate-900"
                 }`}
               >
-                👶 Parent Portal
+                👶 Parent
               </button>
               <button
                 type="button"
@@ -1065,13 +1377,27 @@ export default function Home() {
                   setUserType("clinician");
                   setErrorMessage("");
                 }}
-                className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all ${
+                className={`py-2 text-[11px] sm:text-xs font-bold rounded-xl transition-all ${
                   userType === "clinician"
                     ? "bg-white text-slate-900 shadow-sm"
                     : "text-slate-500 hover:text-slate-900"
                 }`}
               >
-                🩺 Clinician Portal
+                🩺 Clinician
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setUserType("ambulance");
+                  setErrorMessage("");
+                }}
+                className={`py-2 text-[11px] sm:text-xs font-bold rounded-xl transition-all ${
+                  userType === "ambulance"
+                    ? "bg-white text-red-600 shadow-sm"
+                    : "text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                🚑 Ambulance
               </button>
             </div>
 
@@ -1112,6 +1438,10 @@ export default function Home() {
                   ? authMode === "login"
                     ? "Parent / Mother Sign In"
                     : "Register Parent Profile"
+                  : userType === "ambulance"
+                  ? authMode === "login"
+                    ? "Ambulance & Hospital Sign In"
+                    : "Register Emergency Unit"
                   : authMode === "login"
                   ? "Healthcare Staff Sign In"
                   : "Register Healthcare Staff"}
@@ -1119,6 +1449,8 @@ export default function Home() {
               <p className="text-xs text-gray-500 mt-1">
                 {userType === "parent"
                   ? "Access your maternal journey and baby monitoring hub"
+                  : userType === "ambulance"
+                  ? "Access real-time emergency dispatch & hospital receiving bed status"
                   : "Access verified clinical decision support and referral center"}
               </p>
             </div>
@@ -1127,7 +1459,11 @@ export default function Home() {
             <div className="mb-4 p-2.5 rounded-xl bg-pink-50/70 border border-pink-200/60 flex items-center justify-between text-xs">
               <div className="text-pink-900">
                 <span className="font-semibold text-pink-700">Demo Account:</span>{" "}
-                {userType === "clinician" ? "admin / 123" : "parent / 123"}
+                {userType === "clinician"
+                  ? "admin / 123"
+                  : userType === "ambulance"
+                  ? "ambulance / 123"
+                  : "parent / 123"}
               </div>
               <button
                 type="button"
@@ -1156,17 +1492,58 @@ export default function Home() {
                 <>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      {userType === "parent" ? "Mother / Parent Full Name" : "Clinician Full Name"}
+                      {userType === "parent"
+                        ? "Mother / Parent Full Name"
+                        : userType === "ambulance"
+                        ? "Paramedic / Dispatcher Name"
+                        : "Clinician Full Name"}
                     </label>
                     <input
                       type="text"
                       required
                       value={signupName}
                       onChange={(e) => setSignupName(e.target.value)}
-                      placeholder={userType === "parent" ? "e.g. Priya Sharma" : "e.g. Dr. Ananya Sen"}
+                      placeholder={
+                        userType === "parent"
+                          ? "e.g. Priya Sharma"
+                          : userType === "ambulance"
+                          ? "e.g. Rajesh Kumar (EMT Unit 108)"
+                          : "e.g. Dr. Ananya Sen"
+                      }
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none"
                     />
                   </div>
+
+                  {userType === "ambulance" && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Role / Unit
+                        </label>
+                        <select
+                          value={signupRole}
+                          onChange={(e) => setSignupRole(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white outline-none"
+                        >
+                          <option value="Emergency EMT Lead">Advanced Life Support (ALS) Paramedic</option>
+                          <option value="Hospital Triage Incharge">Hospital Emergency Triage Incharge</option>
+                          <option value="Dispatch Coordinator">108 Emergency Dispatch Coordinator</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Base Hospital / Station
+                        </label>
+                        <input
+                          type="text"
+                          value={signupFacility}
+                          onChange={(e) => setSignupFacility(e.target.value)}
+                          placeholder="e.g. District Women's Hospital Station"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none"
+                        />
+                      </div>
+                    </>
+                  )}
 
                   {userType === "clinician" && (
                     <>
@@ -1203,14 +1580,24 @@ export default function Home() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {userType === "parent" ? "Username or Mobile Number" : "Username / Clinician ID"}
+                  {userType === "parent"
+                    ? "Username or Mobile Number"
+                    : userType === "ambulance"
+                    ? "Ambulance / Unit ID"
+                    : "Username / Clinician ID"}
                 </label>
                 <input
                   type="text"
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder={userType === "parent" ? "e.g. parent" : "e.g. admin"}
+                  placeholder={
+                    userType === "parent"
+                      ? "e.g. parent"
+                      : userType === "ambulance"
+                      ? "e.g. ambulance"
+                      : "e.g. admin"
+                  }
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none"
                 />
               </div>
@@ -1243,6 +1630,8 @@ export default function Home() {
                 {authMode === "login"
                   ? userType === "parent"
                     ? "Open Parent Portal &rarr;"
+                    : userType === "ambulance"
+                    ? "Open Ambulance Dispatch Hub &rarr;"
                     : "Sign In as Clinician &rarr;"
                   : "Create & Access Account"}
               </button>
