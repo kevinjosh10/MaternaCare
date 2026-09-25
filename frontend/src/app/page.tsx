@@ -61,6 +61,7 @@ function AmbulanceIcon({ className = "w-4 h-4" }: { className?: string }) {
 }
 
 interface ParentProfile {
+  id?: string;
   fullName: string;
   age: string;
   phone: string;
@@ -80,7 +81,26 @@ interface ParentProfile {
   babyName: string;
 }
 
+interface PatientDocument {
+  id: string;
+  file_name: string;
+  file_key: string;
+  s3_uri: string;
+  public_url?: string;
+  file_size?: number;
+  status?: string;
+  ocr_markdown?: string;
+  extracted_entities?: {
+    previousComplications?: string[];
+    allergies?: string[];
+    pastSurgeries?: string[];
+    detectedVitals?: Record<string, string>;
+  };
+  created_at?: string;
+}
+
 const initialParentProfile: ParentProfile = {
+  id: "priya.sharma@example.com",
   fullName: "Priya Sharma",
   age: "27",
   phone: "+91 98765 43210",
@@ -132,26 +152,22 @@ export default function Home() {
   // Active Authenticated State
   const [loggedInRole, setLoggedInRole] = useState<"clinician" | "parent" | "ambulance" | null>(null);
 
-  // Parent Profile State
+  // Parent Profile & Documents State
   const [parentProfile, setParentProfile] = useState<ParentProfile>(initialParentProfile);
+  const [parentDocuments, setParentDocuments] = useState<PatientDocument[]>([]);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
   const [awsSyncDetails, setAwsSyncDetails] = useState<string | null>(null);
 
-  // Document Upload & Jina OCR State
+  // Document Upload & Jina OCR State (Clinician & Parent)
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [parentUploadFile, setParentUploadFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isParentUploading, setIsParentUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<UploadedDocumentResult | null>(null);
+  const [parentUploadResult, setParentUploadResult] = useState<UploadedDocumentResult | null>(null);
   const [verifiedEntities, setVerifiedEntities] = useState<string[]>([]);
-
-  // Ambulance & Hospital Dispatch State
-  const [dispatchStatus, setDispatchStatus] = useState<
-    "DISPATCHED" | "EN_ROUTE" | "PATIENT_ONBOARD" | "IN_TRANSIT" | "ARRIVED"
-  >("DISPATCHED");
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [nicuBedReady, setNicuBedReady] = useState(true);
-  const [magSulfateReady, setMagSulfateReady] = useState(true);
-  const [bloodUnitsReady, setBloodUnitsReady] = useState(false);
+  const [expandedDocId, setExpandedDocId] = useState<string | null>(null);
 
   // Health Check State
   const [awsStatus, setAwsStatus] = useState<{
@@ -161,6 +177,24 @@ export default function Home() {
     ocrEngine: string;
   } | null>(null);
 
+  // Load active profile and documents from PostgreSQL RDS
+  const loadPatientProfile = async (identifier: string) => {
+    try {
+      const res = await fetch(`/api/patients/profile?id=${encodeURIComponent(identifier)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.profile) {
+          setParentProfile(data.profile);
+          if (data.documents && Array.isArray(data.documents)) {
+            setParentDocuments(data.documents);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Could not load profile from RDS, using cached data:", err);
+    }
+  };
+
   useEffect(() => {
     // Check AWS backend health on mount
     fetch("/api/health")
@@ -169,6 +203,9 @@ export default function Home() {
         if (data.services) setAwsStatus(data.services);
       })
       .catch((err) => console.warn("AWS Health Check note:", err));
+
+    // Initial load for demo profile
+    loadPatientProfile("priya.sharma@example.com");
   }, []);
 
   // Open modal helper
@@ -181,7 +218,7 @@ export default function Home() {
   };
 
   // Auth Handler
-  const handleAuthSubmit = (e: React.FormEvent) => {
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
     setSuccessMessage("");
@@ -216,6 +253,8 @@ export default function Home() {
           (username.trim() === "admin" && password === "123") ||
           username.trim().length > 0
         ) {
+          const lookupId = username.trim() === "parent" ? "priya.sharma@example.com" : username.trim();
+          await loadPatientProfile(lookupId);
           setLoggedInRole("parent");
           setIsModalOpen(false);
           setUsername("");
@@ -231,12 +270,16 @@ export default function Home() {
         return;
       }
       if (userType === "parent") {
-        const newProfile = {
-          ...parentProfile,
+        const userEmail = username.includes("@") ? username.trim() : `${username.trim()}@maternacare.org`;
+        const newProfile: ParentProfile = {
+          ...initialParentProfile,
+          id: userEmail,
           fullName: signupName,
-          email: `${username}@maternacare.org`,
+          email: userEmail,
+          phone: username.match(/^\+?[0-9\s-]+$/) ? username.trim() : "+91 98765 00000",
         };
         setParentProfile(newProfile);
+        setParentDocuments([]);
         setLoggedInRole("parent");
         setIsModalOpen(false);
         saveProfileToAws(newProfile);
@@ -304,7 +347,85 @@ export default function Home() {
     saveProfileToAws(parentProfile);
   };
 
-  // Upload Medical Record to AWS S3 & Jina OCR
+  // Upload Medical Record by Parent to AWS S3 & Jina OCR
+  const handleParentDocumentUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!parentUploadFile) return;
+
+    setIsParentUploading(true);
+    const formData = new FormData();
+    formData.append("file", parentUploadFile);
+    formData.append("patientId", parentProfile.email || parentProfile.fullName);
+    formData.append("patientName", parentProfile.fullName);
+    formData.append("userId", "parent");
+
+    try {
+      const response = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setParentUploadResult(data);
+
+        // Add to local documents list immediately
+        const newDoc: PatientDocument = {
+          id: data.documentId || `DOC-${Date.now()}`,
+          file_name: data.fileName || parentUploadFile.name,
+          file_key: data.fileKey,
+          s3_uri: data.s3Uri,
+          public_url: data.publicUrl,
+          file_size: data.fileSize || parentUploadFile.size,
+          status: "VERIFIED",
+          ocr_markdown: data.ocrMarkdown,
+          extracted_entities: data.extractedEntities,
+          created_at: data.createdAt || new Date().toISOString(),
+        };
+
+        setParentDocuments((prev) => [newDoc, ...prev]);
+
+        // Auto-enrich profile if new medical entities were found
+        const complications = data.extractedEntities?.previousComplications || [];
+        const allergies = data.extractedEntities?.allergies || [];
+        
+        let updatedProfile = { ...parentProfile };
+        let profileChanged = false;
+
+        if (complications.length > 0) {
+          const compText = complications.join(", ");
+          updatedProfile.medicalConditions = updatedProfile.medicalConditions
+            ? `${updatedProfile.medicalConditions}; ${compText}`
+            : compText;
+          profileChanged = true;
+        }
+
+        if (allergies.length > 0) {
+          const allText = allergies.join(", ");
+          updatedProfile.knownAllergies = updatedProfile.knownAllergies
+            ? `${updatedProfile.knownAllergies}; ${allText}`
+            : allText;
+          profileChanged = true;
+        }
+
+        if (profileChanged) {
+          setParentProfile(updatedProfile);
+          saveProfileToAws(updatedProfile);
+        }
+
+        setParentUploadFile(null);
+      } else {
+        alert("Document upload failed. Please try again.");
+      }
+    } catch (err) {
+      console.error("Parent upload error:", err);
+      alert("Error uploading document to Amazon S3.");
+    } finally {
+      setIsParentUploading(false);
+    }
+  };
+
+  // Upload Medical Record by Clinician to AWS S3 & Jina OCR
   const handleDocumentUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uploadFile) return;
@@ -312,8 +433,9 @@ export default function Home() {
     setIsUploading(true);
     const formData = new FormData();
     formData.append("file", uploadFile);
-    formData.append("patientId", parentProfile.fullName);
-    formData.append("userId", loggedInRole || "user");
+    formData.append("patientId", parentProfile.email || parentProfile.fullName);
+    formData.append("patientName", parentProfile.fullName);
+    formData.append("userId", loggedInRole || "clinician");
 
     try {
       const response = await fetch("/api/documents/upload", {
@@ -335,6 +457,21 @@ export default function Home() {
           entities.push(...data.extractedEntities.pastSurgeries);
         }
         setVerifiedEntities(entities);
+
+        // Add to document history
+        const newDoc: PatientDocument = {
+          id: data.documentId || `DOC-${Date.now()}`,
+          file_name: data.fileName || uploadFile.name,
+          file_key: data.fileKey,
+          s3_uri: data.s3Uri,
+          public_url: data.publicUrl,
+          file_size: data.fileSize || uploadFile.size,
+          status: "VERIFIED",
+          ocr_markdown: data.ocrMarkdown,
+          extracted_entities: data.extractedEntities,
+          created_at: data.createdAt || new Date().toISOString(),
+        };
+        setParentDocuments((prev) => [newDoc, ...prev]);
       } else {
         alert("Upload failed. Please check your network connection.");
       }
@@ -358,23 +495,6 @@ export default function Home() {
     alert("Verified history committed to trusted Patient Health Memory on AWS RDS!");
     setUploadResult(null);
     setUploadFile(null);
-  };
-
-  const playEmergencyVoiceAlert = () => {
-    setIsPlayingAudio(true);
-    const synth = typeof window !== "undefined" ? window.speechSynthesis : null;
-    if (synth) {
-      const utterance = new SpeechSynthesisUtterance(
-        `Critical Emergency Referral for pregnant patient Priya Sharma, 32 weeks gestational age. Sending facility: Primary Health Centre Rampur. Verified warning signs: rapid blood pressure spike of plus 24 millimeters mercury, severe proteinuria, and verified past history of preeclampsia. Please prepare Magnesium Sulfate and Level 3 NICU bed at District Hospital immediately.`
-      );
-      utterance.rate = 1.0;
-      utterance.pitch = 1.05;
-      utterance.onend = () => setIsPlayingAudio(false);
-      utterance.onerror = () => setIsPlayingAudio(false);
-      synth.speak(utterance);
-    } else {
-      setTimeout(() => setIsPlayingAudio(false), 4000);
-    }
   };
 
   return (
@@ -643,7 +763,7 @@ export default function Home() {
                       Patient: {parentProfile.fullName}
                     </h2>
                     <p className="text-xs text-gray-500">
-                      ID: P-1004 &bull; Age: {parentProfile.age}y &bull; Blood: {parentProfile.bloodGroup} &bull; Parity: {parentProfile.gravidity}/{parentProfile.parity}
+                      Email/ID: {parentProfile.email} &bull; Age: {parentProfile.age}y &bull; Blood: {parentProfile.bloodGroup} &bull; Parity: {parentProfile.gravidity}/{parentProfile.parity}
                     </p>
                   </div>
                   <div className="px-3.5 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold">
@@ -698,6 +818,40 @@ export default function Home() {
                     </p>
                   </div>
                 </div>
+
+                {/* Patient's Uploaded Records List */}
+                {parentDocuments.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                    <span className="font-bold text-slate-800 text-xs block mb-2">
+                      Uploaded Patient Records &amp; Scans ({parentDocuments.length})
+                    </span>
+                    <div className="space-y-2">
+                      {parentDocuments.map((doc) => (
+                        <div key={doc.id} className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200 text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="text-red-500 font-bold">📄</span>
+                            <div>
+                              <span className="font-semibold text-slate-800">{doc.file_name}</span>
+                              <span className="text-[10px] text-gray-400 block">
+                                {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : "Recent"} &bull; S3 Bucket Verified
+                              </span>
+                            </div>
+                          </div>
+                          {doc.public_url && (
+                            <a
+                              href={doc.public_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] font-semibold text-pink-600 hover:text-pink-700 underline"
+                            >
+                              View S3 File ↗
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Emergency Action Buttons */}
                 <div className="pt-2 flex flex-wrap gap-3">
@@ -800,11 +954,11 @@ export default function Home() {
           </section>
         ) : loggedInRole === "parent" ? (
           /* ========================================================================= */
-          /* 3. PARENT PROFILE & MATERNAL HUB */
+          /* 3. PARENT PROFILE & MATERNAL HUB WITH PDF UPLOAD */
           /* ========================================================================= */
-          <section className="py-10 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+          <section className="py-10 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-8">
             {/* Header Banner */}
-            <div className="bg-gradient-to-r from-pink-500 via-rose-400 to-pink-600 rounded-3xl p-6 sm:p-8 text-white shadow-lg shadow-pink-500/15 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="bg-gradient-to-r from-pink-500 via-rose-400 to-pink-600 rounded-3xl p-6 sm:p-8 text-white shadow-lg shadow-pink-500/15 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
                 <span className="inline-block bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold mb-2">
                   Continuous Maternal &amp; Baby Journey
@@ -827,6 +981,171 @@ export default function Home() {
                 <span className="inline-block mt-1 text-[11px] bg-green-400/30 text-white px-2 py-0.5 rounded-full font-medium">
                   Healthy Trajectory
                 </span>
+              </div>
+            </div>
+
+            {/* Document Upload & Medical Reports Section */}
+            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 sm:p-8 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <span>📄</span>
+                    <span>Upload Medical Reports &amp; Scans</span>
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Upload lab reports, ultrasound scans, or antenatal cards to automatically update your health profile via AWS S3 &amp; Jina OCR.
+                  </p>
+                </div>
+                <span className="text-xs font-semibold text-pink-700 bg-pink-50 px-3 py-1 rounded-full border border-pink-200 self-start sm:self-auto">
+                  AWS S3 Encrypted
+                </span>
+              </div>
+
+              {/* Upload Dropzone */}
+              <form onSubmit={handleParentDocumentUpload} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                <div className="md:col-span-2 border-2 border-dashed border-pink-300 rounded-2xl p-6 text-center bg-pink-50/20 hover:bg-pink-50/50 transition-all cursor-pointer">
+                  <input
+                    type="file"
+                    accept=".pdf,image/*"
+                    onChange={(e) => setParentUploadFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                    id="parent-doc-upload"
+                  />
+                  <label htmlFor="parent-doc-upload" className="cursor-pointer block">
+                    <div className="w-12 h-12 rounded-2xl bg-pink-100 text-pink-600 flex items-center justify-center mx-auto mb-2 font-bold text-xl shadow-sm">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                    </div>
+                    <span className="text-sm font-bold text-slate-800 block">
+                      {parentUploadFile ? parentUploadFile.name : "Click to select Medical PDF or Ultrasound Image"}
+                    </span>
+                    <span className="text-xs text-gray-400 block mt-1">
+                      {parentUploadFile
+                        ? `${(parentUploadFile.size / 1024).toFixed(1)} KB — Ready to upload`
+                        : "Supports PDF, JPG, PNG &bull; Auto-extracts vitals, allergies &amp; risk factors"}
+                    </span>
+                  </label>
+                </div>
+
+                <div className="space-y-3">
+                  <button
+                    type="submit"
+                    disabled={!parentUploadFile || isParentUploading}
+                    className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-400 text-white font-bold text-sm shadow-md shadow-pink-500/20 hover:from-pink-600 hover:to-rose-500 disabled:bg-gray-300 transition-all flex items-center justify-center gap-2"
+                  >
+                    {isParentUploading ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        <span>Extracting with Jina OCR...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Upload &amp; Add to Profile →</span>
+                      </>
+                    )}
+                  </button>
+                  <p className="text-[11px] text-gray-500 text-center">
+                    Files are stored in Amazon S3 and securely referenced in PostgreSQL RDS.
+                  </p>
+                </div>
+              </form>
+
+              {/* Upload Success Notice */}
+              {parentUploadResult && (
+                <div className="p-4 rounded-2xl bg-green-50 border border-green-200 text-green-800 text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold flex items-center gap-1.5">
+                      <span>✓</span> Report successfully uploaded &amp; attached to your maternal profile!
+                    </span>
+                    <span className="text-[10px] font-mono bg-green-200/60 px-2 py-0.5 rounded-full">
+                      S3 &amp; RDS Synced
+                    </span>
+                  </div>
+                  {parentUploadResult.extractedEntities && (
+                    <div className="text-[11px] text-green-900 bg-white/70 p-2.5 rounded-xl border border-green-200">
+                      <strong>AI Extracted Findings:</strong>{" "}
+                      {Object.keys(parentUploadResult.extractedEntities).length > 0 ? (
+                        <span>
+                          {parentUploadResult.extractedEntities.previousComplications?.join(", ") || ""}
+                          {parentUploadResult.extractedEntities.allergies
+                            ? ` | Allergies: ${parentUploadResult.extractedEntities.allergies.join(", ")}`
+                            : ""}
+                        </span>
+                      ) : (
+                        "Text extracted cleanly. Your clinical memory is updated."
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* List of Uploaded Documents */}
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center justify-between">
+                  <span>Your Uploaded Reports &amp; Medical Files ({parentDocuments.length})</span>
+                  <span className="text-xs font-normal text-gray-500">Stored on Amazon S3</span>
+                </h3>
+
+                {parentDocuments.length === 0 ? (
+                  <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center text-xs text-gray-500">
+                    No documents uploaded yet. Upload your ultrasound scans, blood test results, or prescription slips above to build your unbroken medical memory.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {parentDocuments.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="p-4 rounded-2xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200 transition-all space-y-2"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-sm">
+                              PDF
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-slate-900">{doc.file_name}</div>
+                              <div className="text-[11px] text-gray-500">
+                                {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : "Recent"} &bull;{" "}
+                                {doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : "Stored"} &bull; Status:{" "}
+                                <span className="text-green-700 font-semibold">{doc.status || "VERIFIED"}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {doc.ocr_markdown && (
+                              <button
+                                type="button"
+                                onClick={() => setExpandedDocId(expandedDocId === doc.id ? null : doc.id)}
+                                className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-medium hover:bg-slate-50"
+                              >
+                                {expandedDocId === doc.id ? "Hide OCR Text" : "View OCR Markdown"}
+                              </button>
+                            )}
+                            {doc.public_url && (
+                              <a
+                                href={doc.public_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-3 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-xs font-semibold shadow-sm transition-all"
+                              >
+                                Open File ↗
+                              </a>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Expandable OCR text preview */}
+                        {expandedDocId === doc.id && doc.ocr_markdown && (
+                          <div className="mt-2 p-3 rounded-xl bg-white border border-slate-200 text-[11px] font-mono text-slate-700 max-h-48 overflow-y-auto whitespace-pre-wrap">
+                            {doc.ocr_markdown}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -910,7 +1229,7 @@ export default function Home() {
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Email Address
+                        Email Address / Unique ID
                       </label>
                       <input
                         type="email"
@@ -1220,7 +1539,7 @@ export default function Home() {
                       </div>
                       <h3 className="text-lg font-bold text-slate-900">REMEMBER</h3>
                       <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                        Extracts and verifies previous medical history from unstructured records using Document AI.
+                        Extracts and verifies previous medical history from unstructured records using Document AI &amp; Jina OCR.
                       </p>
                     </div>
                     {/* Pillar 2 */}
@@ -1248,9 +1567,9 @@ export default function Home() {
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-100 text-pink-600 mb-4 font-bold text-lg">
                         4
                       </div>
-                      <h3 className="text-lg font-bold text-slate-900">EXPLAIN</h3>
+                      <h3 className="text-lg font-bold text-slate-900">COMMUNICATE</h3>
                       <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                        Uses SHAP to explain exactly why the AI model is concerned, keeping humans in the loop.
+                        Produces instant, auditable clinical handovers with pre-arrival checklists for emergency triage.
                       </p>
                     </div>
                     {/* Pillar 5 */}
@@ -1258,9 +1577,9 @@ export default function Home() {
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-100 text-pink-600 mb-4 font-bold text-lg">
                         5
                       </div>
-                      <h3 className="text-lg font-bold text-slate-900">REFER</h3>
+                      <h3 className="text-lg font-bold text-slate-900">ACT</h3>
                       <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                        Automatically locates facilities via Google Maps and bridges emergency voice communication.
+                        Ambulance and hospital routing intelligence with real-time pre-arrival readiness checklists.
                       </p>
                     </div>
                     {/* Pillar 6 */}
@@ -1268,9 +1587,9 @@ export default function Home() {
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-100 text-pink-600 mb-4 font-bold text-lg">
                         6
                       </div>
-                      <h3 className="text-lg font-bold text-slate-900">FOLLOW UP</h3>
+                      <h3 className="text-lg font-bold text-slate-900">CONTINUE</h3>
                       <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                        Extends the journey to neonatal monitoring and tracks pattern-changes in the baby&apos;s first year.
+                        Bridges maternal history directly to newborn first-year health monitoring.
                       </p>
                     </div>
                   </div>
@@ -1281,30 +1600,30 @@ export default function Home() {
         )}
       </main>
 
-      {/* Interactive Auth Modal (Supports 3 Portals with Custom SVG Icons) */}
+      {/* Authentication & Profile Creation Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 relative border border-pink-100 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-gray-100 relative animate-in fade-in zoom-in-95 duration-200">
             {/* Close Button */}
             <button
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-5 right-5 text-gray-400 hover:text-gray-700 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition-colors"
+              className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
             >
-              &times;
+              ✕
             </button>
 
-            {/* 3-Role Portal Switcher with Custom SVG Icons */}
-            <div className="grid grid-cols-3 bg-slate-100 p-1 rounded-2xl mb-4 text-center">
+            {/* Modal Portal Selector */}
+            <div className="flex p-1 bg-slate-100 rounded-2xl mb-6">
               <button
                 type="button"
                 onClick={() => {
                   setUserType("parent");
                   setErrorMessage("");
                 }}
-                className={`py-2 px-1 text-[11px] sm:text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
                   userType === "parent"
                     ? "bg-white text-pink-600 shadow-sm"
-                    : "text-slate-500 hover:text-slate-900"
+                    : "text-gray-500 hover:text-gray-900"
                 }`}
               >
                 <ParentIcon className="w-3.5 h-3.5" />
@@ -1316,10 +1635,10 @@ export default function Home() {
                   setUserType("clinician");
                   setErrorMessage("");
                 }}
-                className={`py-2 px-1 text-[11px] sm:text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
                   userType === "clinician"
                     ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-900"
+                    : "text-gray-500 hover:text-gray-900"
                 }`}
               >
                 <ClinicianIcon className="w-3.5 h-3.5" />
@@ -1331,10 +1650,10 @@ export default function Home() {
                   setUserType("ambulance");
                   setErrorMessage("");
                 }}
-                className={`py-2 px-1 text-[11px] sm:text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
                   userType === "ambulance"
                     ? "bg-white text-red-600 shadow-sm"
-                    : "text-slate-500 hover:text-slate-900"
+                    : "text-gray-500 hover:text-gray-900"
                 }`}
               >
                 <AmbulanceIcon className="w-3.5 h-3.5" />
@@ -1342,61 +1661,61 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Mode Switcher: Login vs Sign Up */}
-            <div className="flex border-b border-slate-100 pb-2 mb-4 justify-center gap-6 text-sm font-semibold">
+            {/* Modal Title */}
+            <div className="text-center mb-5">
+              <h3 className="text-xl font-bold text-slate-900">
+                {authMode === "login"
+                  ? userType === "parent"
+                    ? "Parent / Mother Portal"
+                    : userType === "ambulance"
+                    ? "Ambulance & Hospital Dispatch"
+                    : "Clinician Triage Hub"
+                  : userType === "parent"
+                  ? "Create Maternal Profile"
+                  : "Register Clinician Account"}
+              </h3>
+              <p className="text-xs text-gray-500 mt-1">
+                {authMode === "login"
+                  ? "Sign in to access your continuous health record on AWS."
+                  : "Register your profile and store on Amazon RDS & S3."}
+              </p>
+            </div>
+
+            {/* Mode Switcher */}
+            <div className="flex justify-center gap-4 text-xs font-semibold mb-4 border-b border-gray-100 pb-3">
               <button
+                type="button"
                 onClick={() => {
                   setAuthMode("login");
                   setErrorMessage("");
+                  setSuccessMessage("");
                 }}
-                className={`pb-1 transition-all ${
+                className={`pb-1 ${
                   authMode === "login"
                     ? "text-pink-600 border-b-2 border-pink-500"
-                    : "text-slate-400 hover:text-slate-700"
+                    : "text-gray-400 hover:text-gray-600"
                 }`}
               >
                 Sign In
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setAuthMode("signup");
                   setErrorMessage("");
+                  setSuccessMessage("");
                 }}
-                className={`pb-1 transition-all ${
+                className={`pb-1 ${
                   authMode === "signup"
                     ? "text-pink-600 border-b-2 border-pink-500"
-                    : "text-slate-400 hover:text-slate-700"
+                    : "text-gray-400 hover:text-gray-600"
                 }`}
               >
-                Create Account
+                Create New Profile
               </button>
             </div>
 
-            {/* Header Title */}
-            <div className="text-center mb-4">
-              <h2 className="text-xl font-bold text-slate-900">
-                {userType === "parent"
-                  ? authMode === "login"
-                    ? "Parent / Mother Sign In"
-                    : "Register Parent Profile"
-                  : userType === "ambulance"
-                  ? authMode === "login"
-                    ? "Ambulance & Hospital Sign In"
-                    : "Register Emergency Unit"
-                  : authMode === "login"
-                  ? "Healthcare Staff Sign In"
-                  : "Register Healthcare Staff"}
-              </h2>
-              <p className="text-xs text-gray-500 mt-1">
-                {userType === "parent"
-                  ? "Access your maternal journey and baby monitoring hub"
-                  : userType === "ambulance"
-                  ? "Access real-time emergency dispatch & hospital receiving bed status"
-                  : "Access verified clinical decision support and referral center"}
-              </p>
-            </div>
-
-            {/* Demo Quick Auto-Fill */}
+            {/* Quick Auto-fill for Demonstration */}
             <div className="mb-4 p-2.5 rounded-xl bg-pink-50/70 border border-pink-200/60 flex items-center justify-between text-xs">
               <div className="text-pink-900">
                 <span className="font-semibold text-pink-700">Demo Account:</span>{" "}
@@ -1522,7 +1841,7 @@ export default function Home() {
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   {userType === "parent"
-                    ? "Username or Mobile Number"
+                    ? "Email or Mobile Number"
                     : userType === "ambulance"
                     ? "Ambulance / Unit ID"
                     : "Username / Clinician ID"}
@@ -1534,7 +1853,7 @@ export default function Home() {
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder={
                     userType === "parent"
-                      ? "e.g. parent"
+                      ? "e.g. parent or priya.sharma@example.com"
                       : userType === "ambulance"
                       ? "e.g. ambulance"
                       : "e.g. admin"
@@ -1575,7 +1894,7 @@ export default function Home() {
                       : userType === "ambulance"
                       ? "Access Ambulance & Hospital Hub →"
                       : "Sign In as Clinician →"
-                    : "Create & Access Account →"}
+                    : "Create & Access Maternal Profile →"}
                 </span>
               </button>
             </form>
