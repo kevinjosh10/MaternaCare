@@ -78,9 +78,9 @@ export async function POST(req: NextRequest) {
     try {
       await db.query(
         `INSERT INTO patients (id, full_name, email, age, gestational_weeks, updated_at)
-         VALUES ($1, $2, $3, 27, 32, NOW())
+         VALUES ($1, $2, $3, $4, $5, NOW())
          ON CONFLICT (id) DO UPDATE SET updated_at = NOW()`,
-        [patientId, patientName, patientId]
+        [patientId, patientName, patientId, 27, 32]
       );
 
       await db.query(
