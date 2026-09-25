@@ -94,61 +94,7 @@ export function ParentPortal({
           </span>
         </div>
 
-        {/* Model 5 AI OCR Status Pill & Configuration */}
-        <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
-            <span className="font-bold text-slate-800">Model 5 AI OCR Engine:</span>
-            <span className="text-slate-600 font-mono text-[11px] truncate max-w-xs sm:max-w-md">
-              {colabUrl ? colabUrl : "Integrated GPU & Full-Text Optical Engine"}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowColabInput(!showColabInput)}
-            className="text-pink-600 hover:text-pink-800 font-semibold underline cursor-pointer"
-          >
-            {showColabInput ? "Close Settings" : "Configure Colab URL"}
-          </button>
-        </div>
 
-        {showColabInput && (
-          <div className="p-4 rounded-2xl bg-pink-50/60 border border-pink-200 space-y-2 text-xs">
-            <label className="block font-semibold text-slate-800">
-              Connected Google Colab / Cloudflare OCR API Endpoint:
-            </label>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="text"
-                value={colabUrl}
-                onChange={(e) => {
-                  setColabUrl(e.target.value);
-                  if (typeof window !== "undefined") {
-                    localStorage.setItem("maternacare_colab_ocr_url", e.target.value.trim());
-                  }
-                }}
-                placeholder="https://xxxx.trycloudflare.com or https://xxxx.ngrok-free.app"
-                className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-pink-300 text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-500 font-mono text-xs"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    localStorage.setItem("maternacare_colab_ocr_url", colabUrl.trim());
-                  }
-                  alert("Connected Model 5 Colab URL saved successfully!");
-                  setShowColabInput(false);
-                }}
-                className="px-4 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold transition-all shadow-sm cursor-pointer whitespace-nowrap"
-              >
-                Save &amp; Connect
-              </button>
-            </div>
-            <p className="text-[11px] text-gray-500">
-              Paste the public URL printed when you ran Cell 2 in Google Colab (e.g. <code>https://xxxx.trycloudflare.com</code>).
-            </p>
-          </div>
-        )}
 
         {/* Upload Dropzone */}
         <form onSubmit={onParentUploadSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
