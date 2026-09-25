@@ -57,7 +57,17 @@ export default function ParentPage() {
         if (cachedDocs) {
           const parsed = JSON.parse(cachedDocs);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setParentDocuments(parsed);
+            const validDocs = parsed.filter(
+              (d: PatientDocument) =>
+                d.ocr_markdown &&
+                !d.ocr_markdown.startsWith("# Medical Report Analysis - Blood Pressure") &&
+                d.ocr_markdown.length > 100
+            );
+            if (validDocs.length > 0) {
+              setParentDocuments(validDocs);
+            } else {
+              localStorage.removeItem(`maternacare_docs_${identifier}`);
+            }
           }
         }
       } catch (e) {
@@ -72,9 +82,15 @@ export default function ParentPage() {
         if (data.success && data.profile) {
           setParentProfile(data.profile);
           if (data.documents && Array.isArray(data.documents) && data.documents.length > 0) {
-            setParentDocuments(data.documents);
+            const validDocs = data.documents.filter(
+              (d: PatientDocument) =>
+                d.ocr_markdown &&
+                !d.ocr_markdown.startsWith("# Medical Report Analysis - Blood Pressure") &&
+                d.ocr_markdown.length > 100
+            );
+            setParentDocuments(validDocs);
             if (typeof window !== "undefined") {
-              localStorage.setItem(`maternacare_docs_${identifier}`, JSON.stringify(data.documents));
+              localStorage.setItem(`maternacare_docs_${identifier}`, JSON.stringify(validDocs));
             }
           }
         }

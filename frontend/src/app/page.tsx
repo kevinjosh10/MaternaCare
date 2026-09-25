@@ -63,7 +63,17 @@ export default function Home() {
         if (cachedDocs) {
           const parsed = JSON.parse(cachedDocs);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setParentDocuments(parsed);
+            const validDocs = parsed.filter(
+              (d: PatientDocument) =>
+                d.ocr_markdown &&
+                !d.ocr_markdown.startsWith("# Medical Report Analysis - Blood Pressure") &&
+                d.ocr_markdown.length > 100
+            );
+            if (validDocs.length > 0) {
+              setParentDocuments(validDocs);
+            } else {
+              localStorage.removeItem(`maternacare_docs_${identifier}`);
+            }
           }
         }
       } catch (e) {
@@ -79,9 +89,15 @@ export default function Home() {
         if (data.success && data.profile) {
           setParentProfile(data.profile);
           if (data.documents && Array.isArray(data.documents) && data.documents.length > 0) {
-            setParentDocuments(data.documents);
+            const validDocs = data.documents.filter(
+              (d: PatientDocument) =>
+                d.ocr_markdown &&
+                !d.ocr_markdown.startsWith("# Medical Report Analysis - Blood Pressure") &&
+                d.ocr_markdown.length > 100
+            );
+            setParentDocuments(validDocs);
             if (typeof window !== "undefined") {
-              localStorage.setItem(`maternacare_docs_${identifier}`, JSON.stringify(data.documents));
+              localStorage.setItem(`maternacare_docs_${identifier}`, JSON.stringify(validDocs));
             }
           }
         }
@@ -243,106 +259,11 @@ export default function Home() {
 
         setParentUploadFile(null);
       } else {
-        alert("Document upload failed. Please try again.");
+        alert("Document upload failed. Please verify your file and try again.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Parent upload error:", err);
-      // Fallback: Create document record locally so user workflow continues seamlessly
-      const fallbackDoc: PatientDocument = {
-        id: `DOC-${Date.now()}`,
-        file_name: fileToUpload.name,
-        file_key: `documents/${fileToUpload.name}`,
-        s3_uri: `s3://maternacare-storage-100403449729/documents/${fileToUpload.name}`,
-        public_url: `https://maternacare-storage-100403449729.s3.ap-south-1.amazonaws.com/documents/${fileToUpload.name}`,
-        file_size: fileToUpload.size,
-        status: "VERIFIED",
-        ocr_markdown: `# 📄 COMPLETE EXTRACTED MEDICAL DOCUMENT (.MD)
-**Document:** \`${fileToUpload.name}\`
-**Extraction Date:** ${new Date().toLocaleString()}
-**Status:** Full-Text Verbatim Extraction (100% Captured)
-
----
-
-## 📑 Verbatim Document Text
-
-DISTRICT WOMEN'S & CHILDREN'S HOSPITAL
-DEPARTMENT OF OBSTETRICS & GYNECOLOGY
-MATERNAL HEALTH EXAMINATION & ANTENATAL RECORD
-
-PATIENT DETAILS:
-- Patient Name: Priya Sharma
-- Age / Gender: 27 Y / Female
-- Obstetric Score: Gravida 2, Para 1 (G2P1)
-- Gestational Age: 32 Weeks 4 Days (Third Trimester)
-- Expected Date of Delivery (EDD): November 20, 2026
-- Blood Group: O Rh Positive (O+)
-- Attending Consultant: Dr. Ananya Sen, MD (Lead Obstetrician)
-
-CLINICAL VITALS & GENERAL PHYSICAL EXAMINATION:
-- Blood Pressure: 142/92 mmHg (Hypertensive spike recorded on manual sphygmomanometer)
-- Mean Arterial Pressure (MAP): 108.6 mmHg
-- Maternal Pulse: 82 bpm (Regular sinus rhythm)
-- Respiratory Rate: 18 breaths/min
-- Temperature: 98.6 °F (Afebrile)
-- Symphysis-Fundal Height (SFH): 33 cm
-- Fetal Presentation: Cephalic (Longitudinal lie)
-- Fetal Heart Rate (FHR): 144 bpm (Regular baseline, good variability)
-
-COMPLETE HEMATOLOGY & BIOCHEMISTRY:
-- Complete Blood Count (CBC):
-  * Hemoglobin (Hb): 10.8 g/dL (Mild physiological gestational anemia)
-  * Hematocrit (PCV): 32.8%
-  * Platelet Count: 184,000 /mcL (Adequate, normal range)
-  * Total Leukocyte Count (WBC): 9,600 /mcL
-- Urinalysis:
-  * Urine Albumin / Protein: ++ (2+ Proteinuria on dipstick)
-  * Urine Glucose: Nil
-- 75g Oral Glucose Tolerance Test (OGTT):
-  * Fasting: 86 mg/dL (Normal < 92) | 1-Hr: 142 mg/dL | 2-Hr: 118 mg/dL
-  * Impression: Normoglycemic (Gestational Diabetes ruled out)
-- Liver & Renal Function:
-  * Serum Creatinine: 0.72 mg/dL | Serum Uric Acid: 5.1 mg/dL
-  * AST (SGOT): 32 U/L | ALT (SGPT): 28 U/L
-
-ULTRASOUND BIOMETRY & UTEROPLACENTAL DOPPLER (32 WEEKS):
-- Biparietal Diameter (BPD): 82.4 mm | Head Circumference (HC): 298.0 mm
-- Abdominal Circumference (AC): 284.6 mm | Femur Length (FL): 62.1 mm
-- Estimated Fetal Weight (Hadlock): 1,895 grams (54th percentile)
-- Amniotic Fluid Index (AFI): 13.8 cm (Normal: 8.0 - 24.0 cm)
-- Umbilical Artery Doppler: S/D 2.42, Positive continuous end-diastolic flow
-
-PAST MEDICAL & OBSTETRIC HISTORY:
-- 2023 Pregnancy: Developed Gestational Hypertension at 35 weeks.
-- Known Drug Allergies: Penicillin (Mild urticarial rash).
-- Past Surgeries: None.
-
-DIAGNOSTIC ASSESSMENT & EMERGENCY PLAN:
-1. G2P1 at 32+4 weeks gestation with single active intrauterine fetus.
-2. New-onset Gestational Hypertension with proteinuria (BP 142/92 mmHg) - High risk for Preeclampsia.
-3. Mild gestational anemia (Hb 10.8 g/dL).
-4. Home blood pressure monitoring twice daily, low sodium diet, repeat UPCR in 7 days, weekly NST/BPP from 34 weeks.
-
----
-
-## 🔬 Extracted Clinical Metrics & Profile Tags
-
-| Clinical Indicator | Extracted Value |
-| :--- | :--- |
-| **Patient Name** | Priya Sharma |
-| **Gestational Timeline** | 32 Weeks |
-| **Recorded Blood Pressure** | 142/92 mmHg |
-| **Detected Complications** | Gestational Hypertension (142/92 mmHg); Prior Preeclampsia in 2023 |
-| **Known Allergies** | Penicillin (Mild Rash) |`,
-        extracted_entities: {
-          previousComplications: ["Gestational Hypertension (142/92 mmHg)", "Prior Preeclampsia in 2023"],
-          allergies: ["Penicillin (Mild Rash)"],
-          detectedVitals: { "Blood Pressure": "142/92 mmHg", "Gestational Age": "32 Weeks" }
-        },
-        created_at: new Date().toISOString(),
-      };
-
-      setParentDocuments((prev) => [fallbackDoc, ...prev]);
-      setParentUploadFile(null);
+      alert(`Document upload error: ${err?.message || "Please verify connection and try again."}`);
     } finally {
       setIsParentUploading(false);
     }

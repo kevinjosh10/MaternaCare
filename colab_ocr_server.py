@@ -44,7 +44,7 @@ def home():
         "status": "online",
         "service": "MaternaCare Model 5 OCR Microservice",
         "supported_formats": ["PDF", "PNG", "JPG", "JPEG", "TIFF"],
-        "engine": "GPU EasyOCR + PyPDF + PyTesseract"
+        "engine": "PyMuPDF + GPU EasyOCR + PyPDF + PyTesseract"
     }
 
 @app.post("/api/ocr")
@@ -59,20 +59,61 @@ async def extract_document_text(file: UploadFile = File(...)):
         is_pdf = filename.lower().endswith(".pdf") or (file.content_type and "pdf" in file.content_type)
 
         if is_pdf:
-            # 1. Digital PDF extraction across all pages
+            # 1. PyMuPDF (fitz) - handles digital text & renders raster pages with high precision
             try:
-                pdf_file = io.BytesIO(contents)
-                reader_pdf = PdfReader(pdf_file)
-                total_pages = len(reader_pdf.pages)
-                
-                for idx, page in enumerate(reader_pdf.pages):
-                    page_text = page.extract_text()
-                    if page_text and len(page_text.strip()) > 20:
+                import fitz
+                doc = fitz.open(stream=contents, filetype="pdf")
+                total_pages = len(doc)
+                for idx in range(total_pages):
+                    page = doc[idx]
+                    page_text = page.get_text()
+                    if page_text and len(page_text.strip()) > 10:
                         extracted_pages.append(f"### --- PAGE {idx + 1} of {total_pages} ---\n\n{page_text.strip()}")
-            except Exception as e:
-                print(f"Digital PDF read note: {e}")
+                    else:
+                        # Page has images/scans - rasterize & run OCR
+                        pix = page.get_pixmap(dpi=200)
+                        img_bytes = pix.tobytes("png")
+                        ocr_lines = reader.readtext(img_bytes, detail=0)
+                        ocr_text = "\n".join(ocr_lines).strip()
+                        if len(ocr_text) < 30:
+                            pil_img = Image.open(io.BytesIO(img_bytes))
+                            ocr_text = pytesseract.image_to_string(pil_img).strip()
+                        if ocr_text:
+                            extracted_pages.append(f"### --- PAGE {idx + 1} of {total_pages} (Optical OCR) ---\n\n{ocr_text}")
+            except Exception as fitz_err:
+                print(f"PyMuPDF note: {fitz_err}")
 
-            # 2. If PDF is a scanned image (no digital text layer), convert pages to images and run EasyOCR + Tesseract
+            # 2. PyPDF fallback across all pages
+            if len(extracted_pages) == 0:
+                try:
+                    pdf_file = io.BytesIO(contents)
+                    reader_pdf = PdfReader(pdf_file)
+                    total_pages = len(reader_pdf.pages)
+                    
+                    for idx, page in enumerate(reader_pdf.pages):
+                        page_text = page.extract_text()
+                        if page_text and len(page_text.strip()) > 5:
+                            extracted_pages.append(f"### --- PAGE {idx + 1} of {total_pages} ---\n\n{page_text.strip()}")
+                        else:
+                            page_imgs = []
+                            try:
+                                for img_obj in page.images:
+                                    ocr_results = reader.readtext(img_obj.data, detail=0)
+                                    if ocr_results:
+                                        page_imgs.append("\n".join(ocr_results))
+                                    else:
+                                        pil_img = Image.open(io.BytesIO(img_obj.data))
+                                        tess = pytesseract.image_to_string(pil_img).strip()
+                                        if tess:
+                                            page_imgs.append(tess)
+                            except Exception as img_err:
+                                print(f"Image scan note: {img_err}")
+                            if page_imgs:
+                                extracted_pages.append(f"### --- PAGE {idx + 1} of {total_pages} (Optical OCR) ---\n\n" + "\n\n".join(page_imgs))
+                except Exception as pypdf_err:
+                    print(f"PyPDF note: {pypdf_err}")
+
+            # 3. pdf2image fallback with poppler
             if len(extracted_pages) == 0:
                 try:
                     images = pdf2image.convert_from_bytes(contents)
@@ -81,11 +122,8 @@ async def extract_document_text(file: UploadFile = File(...)):
                         img.save(img_byte_arr, format='PNG')
                         ocr_results = reader.readtext(img_byte_arr.getvalue(), detail=0)
                         page_text = "\n".join(ocr_results).strip()
-                        
-                        # Fallback to Tesseract if EasyOCR missed lines
                         if len(page_text) < 40:
                             page_text = pytesseract.image_to_string(img).strip()
-
                         if page_text:
                             extracted_pages.append(f"### --- PAGE {idx + 1} of {len(images)} (Optical OCR) ---\n\n{page_text}")
                 except Exception as img_err:
@@ -111,7 +149,7 @@ async def extract_document_text(file: UploadFile = File(...)):
         markdown_output = f"""# 📄 COMPLETE EXTRACTED MEDICAL DOCUMENT (OCR OUTPUT)
 **Source File:** `{filename}`  
 **Pages Extracted:** {len(extracted_pages)}  
-**Engine:** Model 5 (EasyOCR + PyPDF Hybrid Engine)  
+**Engine:** Model 5 (GPU EasyOCR + PyMuPDF + PyPDF)  
 
 ---
 
