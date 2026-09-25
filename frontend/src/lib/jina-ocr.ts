@@ -1,9 +1,9 @@
-import pdfParse from "pdf-parse";
+// Removed buggy pdf-parse module that causes Next.js build crashes
 import zlib from "zlib";
 
 /**
  * Universal Medical Document Full-Text OCR & Extraction Engine
- * Connects to Google Colab / Python Backend (Model 5), PDFParse, and Jina OCR.
+ * Connects to Google Colab / Python Backend (Model 5) and Jina OCR.
  * Extracts 100% of all pages and text from any document without omissions.
  */
 
@@ -80,22 +80,6 @@ export async function extractMedicalDocumentWithJina(
     process.env.COLAB_OCR_URL ||
     process.env.PYTHON_BACKEND_URL ||
     "https://unearned-overheat-amuser.ngrok-free.dev";
-
-  // =========================================================================
-  // Strategy 1: Instant Multi-Page PDF Parser (Super-Fast & Complete)
-  // =========================================================================
-  if (contentType.includes("pdf") || fileName.toLowerCase().endsWith(".pdf")) {
-    try {
-      const parsedData = await pdfParse(fileBuffer);
-      if (parsedData && parsedData.text && parsedData.text.trim().length > 20) {
-        rawExtractedText = parsedData.text.trim();
-        pageCount = parsedData.numpages || 1;
-        console.log(`[Native PDF Engine] Extracted ${rawExtractedText.length} chars across ${pageCount} pages instantly.`);
-      }
-    } catch (pdfErr) {
-      console.warn("PDFParse extraction note:", pdfErr);
-    }
-  }
 
   // =========================================================================
   // Strategy 2: Forward to Google Colab / Python Backend (Model 5 GPU OCR)
