@@ -295,92 +295,98 @@ export function ParentPortal({
             </div>
           ) : (
             <div className="space-y-3">
-              {parentDocuments.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="p-4 rounded-2xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200 transition-all space-y-3"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-sm">
-                        MD
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-slate-900">{doc.file_name}</div>
-                        <div className="text-[11px] text-gray-500">
-                          {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : "Recent"} &bull;{" "}
-                          {doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : "Stored"} &bull; Status:{" "}
-                          <span className="text-green-700 font-semibold">{doc.status || "VERIFIED"}</span>
+              {parentDocuments.map((doc, idx) => {
+                const isExpanded = expandedDocId === doc.id || (expandedDocId === null && idx === 0);
+                return (
+                  <div
+                    key={doc.id}
+                    className="p-4 sm:p-5 rounded-2xl bg-white border-2 border-slate-200 shadow-sm hover:border-pink-300 transition-all space-y-3"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-sm shadow-sm">
+                          📄
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-slate-900">{doc.file_name}</div>
+                          <div className="text-[11px] text-gray-500">
+                            {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : "Recent"} &bull;{" "}
+                            {doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : "Stored"} &bull; Status:{" "}
+                            <span className="text-green-700 font-semibold">{doc.status || "VERIFIED"}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      {doc.ocr_markdown && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => setExpandedDocId(expandedDocId === doc.id ? null : doc.id)}
-                            className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-medium hover:bg-slate-50"
+                      <div className="flex flex-wrap items-center gap-2">
+                        {doc.ocr_markdown && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setExpandedDocId(isExpanded ? "collapse-all" : doc.id)}
+                              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-all cursor-pointer"
+                            >
+                              {isExpanded ? "▲ Collapse View" : "▼ Expand Full Text"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(doc.ocr_markdown || "");
+                                alert("Document Markdown copied to clipboard!");
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1"
+                            >
+                              <span>📋 Copy</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const blob = new Blob([doc.ocr_markdown || ""], { type: "text/markdown;charset=utf-8;" });
+                                const url = URL.createObjectURL(blob);
+                                const link = document.createElement("a");
+                                link.href = url;
+                                const baseName = doc.file_name.replace(/\.[^/.]+$/, "");
+                                link.download = `${baseName}_FULL_TEXT.md`;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                URL.revokeObjectURL(url);
+                              }}
+                              className="px-3.5 py-1.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <span>⬇ Download .MD</span>
+                            </button>
+                          </>
+                        )}
+                        {doc.public_url && (
+                          <a
+                            href={doc.public_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold shadow-sm transition-all"
                           >
-                            {expandedDocId === doc.id ? "Hide Full .MD Text" : "View Full .MD Output"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const blob = new Blob([doc.ocr_markdown || ""], { type: "text/markdown;charset=utf-8;" });
-                              const url = URL.createObjectURL(blob);
-                              const link = document.createElement("a");
-                              link.href = url;
-                              const baseName = doc.file_name.replace(/\.[^/.]+$/, "");
-                              link.download = `${baseName}_FULL_TEXT.md`;
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
-                              URL.revokeObjectURL(url);
-                            }}
-                            className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1"
-                          >
-                            <span>⬇ Download .MD</span>
-                          </button>
-                        </>
-                      )}
-                      {doc.public_url && (
-                        <a
-                          href={doc.public_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-3 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-xs font-semibold shadow-sm transition-all"
-                        >
-                          Original File ↗
-                        </a>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Expandable full OCR text preview */}
-                  {expandedDocId === doc.id && doc.ocr_markdown && (
-                    <div className="mt-2 space-y-2">
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
-                        <span>Full Extracted Document Content:</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(doc.ocr_markdown || "");
-                            alert("Copied document text to clipboard!");
-                          }}
-                          className="text-pink-600 hover:text-pink-800 font-semibold"
-                        >
-                          📋 Copy Text
-                        </button>
+                            Original File ↗
+                          </a>
+                        )}
                       </div>
-                      <pre className="p-4 rounded-xl bg-slate-900 text-emerald-300 border border-slate-700 text-[11px] font-mono max-h-80 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner">
-                        {doc.ocr_markdown}
-                      </pre>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    {/* Auto-expanded full OCR text preview */}
+                    {isExpanded && doc.ocr_markdown && (
+                      <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                          <span>📑 Full Verbatim Document Content:</span>
+                          <span className="text-[11px] text-pink-600 font-mono">
+                            {doc.ocr_markdown.length} Characters
+                          </span>
+                        </div>
+                        <pre className="p-4 rounded-xl bg-slate-950 text-emerald-300 border border-slate-800 text-[11px] font-mono max-h-96 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner">
+                          {doc.ocr_markdown}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
