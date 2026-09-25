@@ -76,7 +76,11 @@ export async function extractMedicalDocumentWithJina(
   let rawExtractedText = "";
   let pageCount = 1;
   const JINA_API_KEY = process.env.JINA_API_KEY || "";
-  const COLAB_OCR_URL = customColabUrl || process.env.COLAB_OCR_URL || process.env.PYTHON_BACKEND_URL || "http://localhost:8000";
+  const COLAB_OCR_URL =
+    customColabUrl ||
+    process.env.COLAB_OCR_URL ||
+    process.env.PYTHON_BACKEND_URL ||
+    "https://unearned-overheat-amuser.ngrok-free.dev";
 
   // =========================================================================
   // Strategy 1: Forward to Google Colab / Python Backend (Model 5 OCR Service)
@@ -108,10 +112,16 @@ export async function extractMedicalDocumentWithJina(
 
       if (colabResponse.ok) {
         const colabData = await colabResponse.json();
-        if (colabData && (colabData.text || colabData.markdown)) {
-          rawExtractedText = (colabData.text || colabData.markdown).trim();
+        const extracted = (colabData?.text && colabData.text.trim().length > 10)
+          ? colabData.text.trim()
+          : (colabData?.markdown && colabData.markdown.trim().length > 30)
+            ? colabData.markdown.trim()
+            : "";
+
+        if (extracted) {
+          rawExtractedText = extracted;
           pageCount = colabData.pages_count || 1;
-          console.log(`[Model 5 OCR] Successfully extracted ${rawExtractedText.length} chars from Colab service.`);
+          console.log(`[Model 5 OCR] Successfully extracted ${rawExtractedText.length} chars across ${pageCount} pages from Colab service.`);
         }
       }
     } catch (colabErr) {
