@@ -138,26 +138,50 @@ export function ClinicianPortal({
               </span>
               <div className="space-y-2">
                 {parentDocuments.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="text-red-500 font-bold">📄</span>
-                      <div>
-                        <span className="font-semibold text-slate-800">{doc.file_name}</span>
-                        <span className="text-[10px] text-gray-400 block">
-                          {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : "Recent"} &bull; Secure Cloud Verified
-                        </span>
+                  <div key={doc.id} className="p-3 rounded-xl bg-white border border-slate-200 text-xs space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-pink-600 font-bold">📄</span>
+                        <div>
+                          <span className="font-semibold text-slate-800">{doc.file_name}</span>
+                          <span className="text-[10px] text-gray-400 block">
+                            {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : "Recent"} &bull; Secure Cloud Verified
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {doc.ocr_markdown && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const blob = new Blob([doc.ocr_markdown || ""], { type: "text/markdown;charset=utf-8;" });
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement("a");
+                              link.href = url;
+                              const baseName = doc.file_name.replace(/\.[^/.]+$/, "");
+                              link.download = `${baseName}_OCR_FULL_TEXT.md`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              URL.revokeObjectURL(url);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-semibold transition-all"
+                          >
+                            ⬇ Download .MD
+                          </button>
+                        )}
+                        {doc.public_url && (
+                          <a
+                            href={doc.public_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[11px] font-semibold text-pink-600 hover:text-pink-700 underline"
+                          >
+                            View Original ↗
+                          </a>
+                        )}
                       </div>
                     </div>
-                    {doc.public_url && (
-                      <a
-                        href={doc.public_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[11px] font-semibold text-pink-600 hover:text-pink-700 underline"
-                      >
-                        View Original Document ↗
-                      </a>
-                    )}
                   </div>
                 ))}
               </div>

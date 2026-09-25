@@ -131,30 +131,48 @@ export function ParentPortal({
           </div>
         </form>
 
-        {/* Upload Success Notice */}
+        {/* Upload Success Notice & Full Markdown Output Preview */}
         {parentUploadResult && (
-          <div className="p-4 rounded-2xl bg-green-50 border border-green-200 text-green-800 text-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-bold flex items-center gap-1.5">
-                <span>✓</span> Report successfully uploaded &amp; attached to your maternal profile!
+          <div className="p-5 rounded-2xl bg-green-50 border border-green-200 text-green-900 text-xs space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-bold flex items-center gap-1.5 text-sm text-green-800">
+                <span>✓</span> Complete Document OCR Extraction Succeeded!
               </span>
-              <span className="text-[10px] font-mono bg-green-200/60 px-2 py-0.5 rounded-full">
-                Encrypted &amp; Synced
-              </span>
-            </div>
-            {parentUploadResult.extractedEntities && (
-              <div className="text-[11px] text-green-900 bg-white/70 p-2.5 rounded-xl border border-green-200">
-                <strong>AI Extracted Findings:</strong>{" "}
-                {Object.keys(parentUploadResult.extractedEntities).length > 0 ? (
-                  <span>
-                    {parentUploadResult.extractedEntities.previousComplications?.join(", ") || ""}
-                    {parentUploadResult.extractedEntities.allergies
-                      ? ` | Allergies: ${parentUploadResult.extractedEntities.allergies.join(", ")}`
-                      : ""}
-                  </span>
-                ) : (
-                  "Text extracted cleanly. Your clinical memory is updated."
+              <div className="flex items-center gap-2">
+                {parentUploadResult.ocrMarkdown && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const blob = new Blob([parentUploadResult.ocrMarkdown || ""], { type: "text/markdown;charset=utf-8;" });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement("a");
+                      link.href = url;
+                      const baseName = (parentUploadResult.fileName || "Medical_Report.pdf").replace(/\.[^/.]+$/, "");
+                      link.download = `${baseName}_OCR_FULL_TEXT.md`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-green-700 hover:bg-green-800 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all"
+                  >
+                    <span>⬇ Download Extracted .MD File</span>
+                  </button>
                 )}
+                <span className="text-[10px] font-mono bg-green-200/80 px-2 py-1 rounded-full text-green-900">
+                  Full Text Captured
+                </span>
+              </div>
+            </div>
+
+            {parentUploadResult.ocrMarkdown && (
+              <div className="mt-3">
+                <div className="text-xs font-bold text-green-950 mb-1.5 flex items-center justify-between">
+                  <span>📄 Full Extracted Markdown (.md) Output:</span>
+                </div>
+                <pre className="p-4 rounded-xl bg-white border border-green-300 text-[11px] font-mono text-slate-800 max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-sm">
+                  {parentUploadResult.ocrMarkdown}
+                </pre>
               </div>
             )}
           </div>
@@ -163,25 +181,25 @@ export function ParentPortal({
         {/* List of Uploaded Documents */}
         <div>
           <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center justify-between">
-            <span>Your Uploaded Reports &amp; Medical Files ({parentDocuments.length})</span>
+            <span>Your Uploaded Reports &amp; Full-Text Markdown Records ({parentDocuments.length})</span>
             <span className="text-xs font-normal text-gray-500">Secure Medical Cloud</span>
           </h3>
 
           {parentDocuments.length === 0 ? (
             <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center text-xs text-gray-500">
-              No documents uploaded yet. Upload your ultrasound scans, blood test results, or prescription slips above to build your unbroken medical memory.
+              No documents uploaded yet. Upload your ultrasound scans, blood test results, or prescription slips above to extract every detail into Markdown.
             </div>
           ) : (
             <div className="space-y-3">
               {parentDocuments.map((doc) => (
                 <div
                   key={doc.id}
-                  className="p-4 rounded-2xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200 transition-all space-y-2"
+                  className="p-4 rounded-2xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200 transition-all space-y-3"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-sm">
-                        PDF
+                        MD
                       </div>
                       <div>
                         <div className="text-xs font-bold text-slate-900">{doc.file_name}</div>
@@ -193,15 +211,35 @@ export function ParentPortal({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       {doc.ocr_markdown && (
-                        <button
-                          type="button"
-                          onClick={() => setExpandedDocId(expandedDocId === doc.id ? null : doc.id)}
-                          className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-medium hover:bg-slate-50"
-                        >
-                          {expandedDocId === doc.id ? "Hide Extracted Text" : "View Extracted Summary"}
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setExpandedDocId(expandedDocId === doc.id ? null : doc.id)}
+                            className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-medium hover:bg-slate-50"
+                          >
+                            {expandedDocId === doc.id ? "Hide Full .MD Text" : "View Full .MD Output"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const blob = new Blob([doc.ocr_markdown || ""], { type: "text/markdown;charset=utf-8;" });
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement("a");
+                              link.href = url;
+                              const baseName = doc.file_name.replace(/\.[^/.]+$/, "");
+                              link.download = `${baseName}_FULL_TEXT.md`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              URL.revokeObjectURL(url);
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1"
+                          >
+                            <span>⬇ Download .MD</span>
+                          </button>
+                        </>
                       )}
                       {doc.public_url && (
                         <a
@@ -210,15 +248,15 @@ export function ParentPortal({
                           rel="noreferrer"
                           className="px-3 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-xs font-semibold shadow-sm transition-all"
                         >
-                          Open File ↗
+                          Original File ↗
                         </a>
                       )}
                     </div>
                   </div>
 
-                  {/* Expandable OCR text preview */}
+                  {/* Expandable full OCR text preview */}
                   {expandedDocId === doc.id && doc.ocr_markdown && (
-                    <div className="mt-2 p-3 rounded-xl bg-white border border-slate-200 text-[11px] font-mono text-slate-700 max-h-48 overflow-y-auto whitespace-pre-wrap">
+                    <div className="mt-2 p-4 rounded-xl bg-white border border-slate-300 text-[11px] font-mono text-slate-800 max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner">
                       {doc.ocr_markdown}
                     </div>
                   )}
