@@ -6,6 +6,7 @@ import { ParentProfile, PatientDocument, UploadedDocumentResult } from "@/types"
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { ParentPortal } from "@/components/portals/ParentPortal";
+import { HealthDashboard } from "@/components/portals/HealthDashboard";
 import { ParentIcon, LogoIcon } from "@/components/icons/PortalIcons";
 
 const initialParentProfile: ParentProfile = {
@@ -43,6 +44,7 @@ export default function ParentPage() {
   const [parentDocuments, setParentDocuments] = useState<PatientDocument[]>([]);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
   const [awsSyncDetails, setAwsSyncDetails] = useState<string | null>(null);
 
   // Upload State
@@ -146,6 +148,7 @@ export default function ParentPage() {
         setProfileSaveSuccess(true);
         setAwsSyncDetails("Encrypted & Securely Synced to Health Record");
         setTimeout(() => setProfileSaveSuccess(false), 4500);
+        setTimeout(() => setShowDashboard(true), 1500);
       }
     } catch (err) {
       setProfileSaveSuccess(true);
@@ -282,7 +285,9 @@ export default function ParentPage() {
 
       {/* Main Content */}
       <main className="flex-1 py-10">
-        {isAuthenticated ? (
+        {isAuthenticated && showDashboard ? (
+          <HealthDashboard profile={parentProfile} onBack={() => setShowDashboard(false)} />
+        ) : isAuthenticated ? (
           <ParentPortal
             parentProfile={parentProfile}
             parentDocuments={parentDocuments}
@@ -299,6 +304,13 @@ export default function ParentPage() {
             }}
             onParentFileChange={setParentUploadFile}
             onParentUploadSubmit={handleParentDocumentUpload}
+            onDeleteDocument={(id: string) => {
+              const updated = parentDocuments.filter(d => d.id !== id);
+              setParentDocuments(updated);
+              if (typeof window !== "undefined") {
+                localStorage.setItem(`maternacare_docs_${parentProfile.email || parentProfile.fullName}`, JSON.stringify(updated));
+              }
+            }}
             onBackToHome={() => setIsAuthenticated(false)}
           />
         ) : (
