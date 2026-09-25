@@ -32,12 +32,12 @@ export default function Home() {
           <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div className="max-w-3xl mx-auto">
               <span className="inline-flex items-center rounded-full bg-pink-100 px-3 py-1 text-sm font-medium text-pink-700 ring-1 ring-inset ring-pink-600/10 mb-6">
-                HT-06: Maternal & Neonatal Intelligence
+                HT-06: Maternal &amp; Neonatal Intelligence
               </span>
               <h1 className="text-5xl font-extrabold tracking-tight text-slate-900 sm:text-7xl mb-8">
                 Continuity of care for{' '}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-400">
-                  Mother & Baby
+                  Mother &amp; Baby
                 </span>
               </h1>
               <p className="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
@@ -51,7 +51,7 @@ export default function Home() {
                   Start Triage
                 </a>
                 <a href="#features" className="text-sm font-semibold leading-6 text-slate-900 flex items-center gap-1 hover:text-pink-500 transition-colors">
-                  Explore Features <span aria-hidden="true">→</span>
+                  Explore Features <span aria-hidden="true">&rarr;</span>
                 </a>
               </div>
             </div>
@@ -67,7 +67,7 @@ export default function Home() {
                 Not just prediction. A complete continuous layer.
               </p>
               <p className="mt-6 text-lg leading-8 text-gray-600">
-                Most systems focus on detecting a risk at one point in time. MaternaCare connects the patient's history, current condition, and referral workflow together.
+                Most systems focus on detecting a risk at one point in time. MaternaCare connects the patient&apos;s history, current condition, and referral workflow together.
               </p>
             </div>
 
@@ -130,7 +130,7 @@ export default function Home() {
                   </div>
                   <h3 className="text-xl font-semibold leading-7 text-slate-900">FOLLOW UP</h3>
                   <p className="mt-2 text-base leading-7 text-gray-600">
-                    Extends the journey to neonatal monitoring and tracks pattern-changes in the baby's first year.
+                    Extends the journey to neonatal monitoring and tracks pattern-changes in the baby&apos;s first year.
                   </p>
                 </div>
               </div>
@@ -156,7 +156,7 @@ export default function Home() {
                   Deploy the System
                 </a>
                 <a href="#" className="text-sm font-semibold leading-6 text-white hover:text-pink-300 transition-colors">
-                  View GitHub Repo <span aria-hidden="true">→</span>
+                  View GitHub Repo <span aria-hidden="true">&rarr;</span>
                 </a>
               </div>
             </div>
@@ -167,7 +167,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-white border-t border-gray-100 py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-500">
-          <p>© {new Date().getFullYear()} MaternaCare. Built for HT-06.</p>
+          <p>&copy; {new Date().getFullYear()} MaternaCare. Built for HT-06.</p>
         </div>
       </footer>
     </div>
