@@ -1,10 +1,10 @@
-// Removed buggy pdf-parse module that causes Next.js build crashes
+import { extractText } from "unpdf";
 import zlib from "zlib";
 
 /**
  * Universal Medical Document Full-Text OCR & Extraction Engine
- * Connects to Google Colab / Python Backend (Model 5) and Jina OCR.
- * Extracts 100% of all pages and text from any document without omissions.
+ * Connects to Mozilla PDF.js Engine (unpdf), Google Colab / Python Backend (Model 5), and Stream Parsers.
+ * Extracts 100% of all pages and text from any document without omissions into a unified Markdown (.md) document.
  */
 
 export interface ClinicalEntities {
@@ -64,7 +64,7 @@ function extractTextFromStreams(pdfBuffer: Buffer): string {
 }
 
 /**
- * Universal Document Full-Text Extractor (PDF, Images, Text)
+ * Universal Document Full-Text Extractor (Multi-page PDF, Scanned Images, Text)
  */
 export async function extractMedicalDocumentWithJina(
   fileBuffer: Buffer,
@@ -80,6 +80,44 @@ export async function extractMedicalDocumentWithJina(
     process.env.COLAB_OCR_URL ||
     process.env.PYTHON_BACKEND_URL ||
     "https://unearned-overheat-amuser.ngrok-free.dev";
+
+  // =========================================================================
+  // Strategy 1: High-Precision Multi-Page PDF Parser (Mozilla PDF.js Engine)
+  // Extracts 100% of all pages verbatim and combines into unified multi-page stream
+  // =========================================================================
+  if (contentType.includes("pdf") || fileName.toLowerCase().endsWith(".pdf")) {
+    try {
+      const pdfUint8 = new Uint8Array(fileBuffer);
+      const pdfData = await extractText(pdfUint8, { mergePages: false });
+      if (pdfData && pdfData.text && Array.isArray(pdfData.text) && pdfData.text.length > 0) {
+        const pageBlocks = (pdfData.text as string[])
+          .map((pText: string, idx: number) => {
+            const clean = pText.trim();
+            if (clean.length > 0) {
+              return `### --- PAGE ${idx + 1} of ${pdfData.totalPages || pdfData.text.length} ---\n\n${clean}`;
+            }
+            return null;
+          })
+          .filter((b): b is string => b !== null);
+
+        if (pageBlocks.length > 0) {
+          rawExtractedText = pageBlocks.join("\n\n---\n\n");
+          pageCount = pdfData.totalPages || pageBlocks.length;
+          console.log(`[Mozilla PDF Engine] Extracted ${rawExtractedText.length} chars across ${pageCount} pages.`);
+        }
+      }
+
+      if (!rawExtractedText) {
+        const mergedData = await extractText(pdfUint8, { mergePages: true });
+        if (mergedData && typeof mergedData.text === "string" && mergedData.text.trim().length > 10) {
+          rawExtractedText = mergedData.text.trim();
+          pageCount = mergedData.totalPages || 1;
+        }
+      }
+    } catch (pdfErr) {
+      console.warn("PDF extraction note:", pdfErr);
+    }
+  }
 
   // =========================================================================
   // Strategy 2: Forward to Google Colab / Python Backend (Model 5 GPU OCR)
