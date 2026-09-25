@@ -267,10 +267,27 @@ export function ParentPortal({
 
         {/* List of Uploaded Documents */}
         <div>
-          <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center justify-between">
-            <span>Your Uploaded Reports &amp; Full-Text Markdown Records ({parentDocuments.length})</span>
-            <span className="text-xs font-normal text-gray-500">Secure Medical Cloud</span>
-          </h3>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h3 className="text-sm font-bold text-slate-900">
+              Your Uploaded Reports &amp; Full-Text Markdown Records ({parentDocuments.length})
+            </h3>
+            {parentDocuments.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    localStorage.removeItem(`maternacare_docs_${parentProfile.email || parentProfile.fullName}`);
+                    localStorage.removeItem("maternacare_docs_priya.sharma@example.com");
+                    localStorage.removeItem("maternacare_docs_Priya Sharma");
+                  }
+                  window.location.reload();
+                }}
+                className="text-[11px] text-red-600 hover:text-red-800 font-semibold underline cursor-pointer"
+              >
+                🗑 Clear Old Reports / Reset Cache
+              </button>
+            )}
+          </div>
 
           {parentDocuments.length === 0 ? (
             <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center text-xs text-gray-500">
