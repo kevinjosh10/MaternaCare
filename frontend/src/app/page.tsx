@@ -2,6 +2,64 @@
 
 import React, { useState, useEffect } from "react";
 
+// Custom SVG Icons for the 3 Portals
+function ParentIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+      <circle cx="12" cy="9" r="2.5" />
+    </svg>
+  );
+}
+
+function ClinicianIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3" />
+      <path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4" />
+      <circle cx="20" cy="10" r="2" />
+    </svg>
+  );
+}
+
+function AmbulanceIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M10 10H6" />
+      <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+      <path d="M19 18h2a1 1 0 0 0 1-1v-3.28a1 1 0 0 0-.684-.948l-2.316-.772V9a2 2 0 0 0-2-2h-3v11h1" />
+      <circle cx="7" cy="18" r="2" />
+      <path d="M9 18h5" />
+      <circle cx="17" cy="18" r="2" />
+      <path d="M8 8v4" />
+    </svg>
+  );
+}
+
 interface ParentProfile {
   fullName: string;
   age: string;
@@ -353,6 +411,7 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <span className="text-xs font-semibold text-pink-700 bg-pink-50 px-3 py-1.5 rounded-full border border-pink-200 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                  <ParentIcon className="w-3.5 h-3.5 text-pink-600" />
                   Parent: {parentProfile.fullName}
                 </span>
                 <button
@@ -366,6 +425,7 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <span className="text-xs font-semibold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                  <ClinicianIcon className="w-3.5 h-3.5 text-blue-600" />
                   Clinician: admin (Triage Mode)
                 </span>
                 <button
@@ -379,6 +439,7 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <span className="text-xs font-semibold text-red-700 bg-red-50 px-3 py-1.5 rounded-full border border-red-200 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+                  <AmbulanceIcon className="w-3.5 h-3.5 text-red-600" />
                   Ambulance Unit 108 &bull; Active Dispatch
                 </span>
                 <button
@@ -392,21 +453,24 @@ export default function Home() {
               <>
                 <button
                   onClick={() => openAuthModal("parent", "login")}
-                  className="text-xs sm:text-sm font-medium text-pink-600 hover:text-pink-700 transition-colors px-2 py-1.5"
+                  className="text-xs sm:text-sm font-medium text-pink-600 hover:text-pink-700 transition-colors px-2 py-1.5 flex items-center gap-1"
                 >
-                  Parent Portal
+                  <ParentIcon className="w-3.5 h-3.5 text-pink-500" />
+                  <span>Parent Portal</span>
                 </button>
                 <button
                   onClick={() => openAuthModal("clinician", "login")}
-                  className="text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors px-2 py-1.5"
+                  className="text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors px-2 py-1.5 flex items-center gap-1"
                 >
-                  Clinician
+                  <ClinicianIcon className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Clinician</span>
                 </button>
                 <button
                   onClick={() => openAuthModal("ambulance", "login")}
-                  className="text-xs sm:text-sm font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1.5 rounded-full transition-all flex items-center gap-1"
+                  className="text-xs sm:text-sm font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1.5 rounded-full transition-all flex items-center gap-1.5"
                 >
-                  🚑 Ambulance / Hospital
+                  <AmbulanceIcon className="w-3.5 h-3.5 text-red-600" />
+                  <span>Ambulance / Hospital</span>
                 </button>
                 <button
                   onClick={() => openAuthModal("parent", "signup")}
@@ -435,7 +499,10 @@ export default function Home() {
                   LIVE EMERGENCY DISPATCH FEED &bull; AWS CLOUDWATCH LOGGED
                 </div>
                 <h1 className="text-2xl sm:text-4xl font-black tracking-tight flex items-center gap-3">
-                  <span>🚑 Emergency Ambulance &amp; Receiving Hospital Hub</span>
+                  <div className="w-10 h-10 rounded-2xl bg-red-600/40 border border-red-500/50 flex items-center justify-center text-red-300">
+                    <AmbulanceIcon className="w-6 h-6" />
+                  </div>
+                  <span>Emergency Ambulance &amp; Hospital Hub</span>
                 </h1>
                 <p className="text-slate-300 text-xs sm:text-sm mt-1">
                   Assigned Unit: <span className="text-white font-bold">ALS Ambulance 108-A</span> &bull; Destination: <span className="text-white font-bold">{parentProfile.preferredFacility}</span>
@@ -477,7 +544,8 @@ export default function Home() {
                 <div className="p-5 rounded-2xl bg-red-50/80 border border-red-200 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-red-900 uppercase tracking-wide flex items-center gap-1.5">
-                      🚨 Verified Warning Signs from Clinician Triage
+                      <AmbulanceIcon className="w-4 h-4 text-red-600" />
+                      Verified Warning Signs from Clinician Triage
                     </span>
                     <span className="text-[11px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">
                       Preeclampsia Cluster
@@ -494,7 +562,10 @@ export default function Home() {
                       disabled={isPlayingAudio}
                       className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-500/20 transition-all flex items-center gap-2"
                     >
-                      {isPlayingAudio ? "🔊 Playing Voice Handover..." : "🔊 Play Synthesized Clinician Voice Alert"}
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                      </svg>
+                      {isPlayingAudio ? "Playing Voice Handover..." : "Play Synthesized Clinician Voice Alert"}
                     </button>
                     <span className="text-[11px] text-red-700 font-medium">
                       Simulates Twilio Telephony / Text-to-Speech API Call
@@ -651,9 +722,12 @@ export default function Home() {
                   </p>
                   <a
                     href={`tel:${parentProfile.emergencyContactPhone}`}
-                    className="inline-block mt-2 px-3 py-1.5 rounded-lg bg-pink-600 text-white font-bold text-xs hover:bg-pink-700 transition-all"
+                    className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-lg bg-pink-600 text-white font-bold text-xs hover:bg-pink-700 transition-all"
                   >
-                    📞 Call Family: {parentProfile.emergencyContactPhone}
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    Call Family: {parentProfile.emergencyContactPhone}
                   </a>
                 </div>
 
@@ -678,8 +752,11 @@ export default function Home() {
                   <span className="w-2 h-2 rounded-full bg-green-400 animate-ping"></span>
                   AWS Cloud Connected
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold">
-                  Clinical Triage &amp; Risk Intelligence Portal
+                <h1 className="text-2xl sm:text-3xl font-extrabold flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-blue-400">
+                    <ClinicianIcon className="w-6 h-6" />
+                  </div>
+                  <span>Clinical Triage &amp; Risk Intelligence Portal</span>
                 </h1>
                 <p className="text-slate-400 text-xs sm:text-sm mt-1">
                   Active Facility: Community Health Centre (CHC) &bull; Lead Clinician: Dr. Ananya Sen
@@ -775,9 +852,10 @@ export default function Home() {
                     onClick={() => {
                       setLoggedInRole("ambulance");
                     }}
-                    className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-500/20 transition-all flex items-center gap-1.5"
+                    className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-500/20 transition-all flex items-center gap-2"
                   >
-                    🚨 Dispatch to Ambulance &amp; Hospital Hub &rarr;
+                    <AmbulanceIcon className="w-4 h-4 text-white" />
+                    <span>Dispatch to Ambulance &amp; Hospital Hub →</span>
                   </button>
                   <button
                     onClick={() => alert("Exporting encrypted clinical handover report to Amazon S3...")}
@@ -810,7 +888,9 @@ export default function Home() {
                     />
                     <label htmlFor="doc-upload" className="cursor-pointer block">
                       <div className="w-10 h-10 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center mx-auto mb-2 font-bold text-lg">
-                        📄
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
                       </div>
                       <span className="text-xs font-semibold text-pink-700 block">
                         {uploadFile ? uploadFile.name : "Choose PDF or Scan"}
@@ -858,7 +938,7 @@ export default function Home() {
                       onClick={handleCommitVerifiedHistory}
                       className="w-full py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all"
                     >
-                      Verify &amp; Commit to RDS Memory &rarr;
+                      Verify &amp; Commit to RDS Memory →
                     </button>
                   </div>
                 )}
@@ -876,8 +956,9 @@ export default function Home() {
                 <span className="inline-block bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold mb-2">
                   Continuous Maternal &amp; Baby Journey
                 </span>
-                <h1 className="text-2xl sm:text-3xl font-extrabold">
-                  Welcome, {parentProfile.fullName}
+                <h1 className="text-2xl sm:text-3xl font-extrabold flex items-center gap-2.5">
+                  <ParentIcon className="w-8 h-8 text-white" />
+                  <span>Welcome, {parentProfile.fullName}</span>
                 </h1>
                 <p className="text-pink-100 text-sm mt-1">
                   Gestational Week:{" "}
@@ -915,8 +996,9 @@ export default function Home() {
               <form onSubmit={handleSaveParentProfile} className="space-y-8">
                 {/* 1. Basic Personal Info */}
                 <div>
-                  <h3 className="text-sm font-bold text-pink-600 uppercase tracking-wider mb-4">
-                    1. Personal Information
+                  <h3 className="text-sm font-bold text-pink-600 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <ParentIcon className="w-4 h-4 text-pink-500" />
+                    <span>1. Personal Information</span>
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
@@ -1174,7 +1256,7 @@ export default function Home() {
                     onClick={() => setLoggedInRole(null)}
                     className="text-sm font-semibold text-slate-500 hover:text-slate-800"
                   >
-                    &larr; Back to Landing Page
+                    ← Back to Landing Page
                   </button>
                   <button
                     type="submit"
@@ -1232,25 +1314,28 @@ export default function Home() {
                     and emergency referral intelligence into one unbroken health journey.
                   </p>
 
-                  {/* 3 Call to Action Buttons */}
+                  {/* 3 Call to Action Buttons with Custom Icons */}
                   <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
                     <button
                       onClick={() => openAuthModal("parent", "login")}
-                      className="rounded-full bg-gradient-to-r from-pink-500 to-rose-400 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-pink-500/20 hover:from-pink-600 hover:to-rose-500 transition-all"
+                      className="rounded-full bg-gradient-to-r from-pink-500 to-rose-400 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-pink-500/20 hover:from-pink-600 hover:to-rose-500 transition-all flex items-center gap-2"
                     >
-                      👶 Parent Portal &rarr;
+                      <ParentIcon className="w-4 h-4 text-white" />
+                      <span>Parent Portal →</span>
                     </button>
                     <button
                       onClick={() => openAuthModal("clinician", "login")}
-                      className="rounded-full bg-slate-900 px-6 py-3.5 text-sm font-semibold text-white shadow-md hover:bg-slate-800 transition-all"
+                      className="rounded-full bg-slate-900 px-6 py-3.5 text-sm font-semibold text-white shadow-md hover:bg-slate-800 transition-all flex items-center gap-2"
                     >
-                      🩺 Clinician Triage
+                      <ClinicianIcon className="w-4 h-4 text-slate-300" />
+                      <span>Clinician Triage</span>
                     </button>
                     <button
                       onClick={() => openAuthModal("ambulance", "login")}
-                      className="rounded-full bg-red-600 hover:bg-red-700 px-6 py-3.5 text-sm font-semibold text-white shadow-md shadow-red-500/20 transition-all flex items-center gap-1.5"
+                      className="rounded-full bg-red-600 hover:bg-red-700 px-6 py-3.5 text-sm font-semibold text-white shadow-md shadow-red-500/20 transition-all flex items-center gap-2"
                     >
-                      🚑 Ambulance / Hospital
+                      <AmbulanceIcon className="w-4 h-4 text-white" />
+                      <span>Ambulance / Hospital</span>
                     </button>
                   </div>
                 </div>
@@ -1343,7 +1428,7 @@ export default function Home() {
         )}
       </main>
 
-      {/* Interactive Auth Modal (Supports 3 Portals) */}
+      {/* Interactive Auth Modal (Supports 3 Portals with Custom SVG Icons) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 relative border border-pink-100 max-h-[90vh] overflow-y-auto">
@@ -1355,7 +1440,7 @@ export default function Home() {
               &times;
             </button>
 
-            {/* 3-Role Portal Switcher */}
+            {/* 3-Role Portal Switcher with Custom SVG Icons */}
             <div className="grid grid-cols-3 bg-slate-100 p-1 rounded-2xl mb-4 text-center">
               <button
                 type="button"
@@ -1363,13 +1448,14 @@ export default function Home() {
                   setUserType("parent");
                   setErrorMessage("");
                 }}
-                className={`py-2 text-[11px] sm:text-xs font-bold rounded-xl transition-all ${
+                className={`py-2 px-1 text-[11px] sm:text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
                   userType === "parent"
                     ? "bg-white text-pink-600 shadow-sm"
                     : "text-slate-500 hover:text-slate-900"
                 }`}
               >
-                👶 Parent
+                <ParentIcon className="w-3.5 h-3.5" />
+                <span>Parent</span>
               </button>
               <button
                 type="button"
@@ -1377,13 +1463,14 @@ export default function Home() {
                   setUserType("clinician");
                   setErrorMessage("");
                 }}
-                className={`py-2 text-[11px] sm:text-xs font-bold rounded-xl transition-all ${
+                className={`py-2 px-1 text-[11px] sm:text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
                   userType === "clinician"
                     ? "bg-white text-slate-900 shadow-sm"
                     : "text-slate-500 hover:text-slate-900"
                 }`}
               >
-                🩺 Clinician
+                <ClinicianIcon className="w-3.5 h-3.5" />
+                <span>Clinician</span>
               </button>
               <button
                 type="button"
@@ -1391,13 +1478,14 @@ export default function Home() {
                   setUserType("ambulance");
                   setErrorMessage("");
                 }}
-                className={`py-2 text-[11px] sm:text-xs font-bold rounded-xl transition-all ${
+                className={`py-2 px-1 text-[11px] sm:text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
                   userType === "ambulance"
                     ? "bg-white text-red-600 shadow-sm"
                     : "text-slate-500 hover:text-slate-900"
                 }`}
               >
-                🚑 Ambulance
+                <AmbulanceIcon className="w-3.5 h-3.5" />
+                <span>Ambulance</span>
               </button>
             </div>
 
@@ -1625,15 +1713,17 @@ export default function Home() {
 
               <button
                 type="submit"
-                className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-pink-500 to-rose-400 text-white font-bold text-sm shadow-md shadow-pink-500/20 hover:from-pink-600 hover:to-rose-500 transition-all"
+                className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-pink-500 to-rose-400 text-white font-bold text-sm shadow-md shadow-pink-500/20 hover:from-pink-600 hover:to-rose-500 transition-all flex items-center justify-center gap-2"
               >
-                {authMode === "login"
-                  ? userType === "parent"
-                    ? "Open Parent Portal &rarr;"
-                    : userType === "ambulance"
-                    ? "Open Ambulance Dispatch Hub &rarr;"
-                    : "Sign In as Clinician &rarr;"
-                  : "Create & Access Account"}
+                <span>
+                  {authMode === "login"
+                    ? userType === "parent"
+                      ? "Enter Parent Portal →"
+                      : userType === "ambulance"
+                      ? "Access Ambulance & Hospital Hub →"
+                      : "Sign In as Clinician →"
+                    : "Create & Access Account →"}
+                </span>
               </button>
             </form>
           </div>
