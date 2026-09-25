@@ -34,9 +34,9 @@ export function LandingView({ onOpenAuthModal }: LandingViewProps) {
               </div>
             </div>
 
-            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-6xl mb-6 leading-tight">
-              Continuous Care for{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-400">
+            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-6xl lg:text-7xl mb-6 leading-tight">
+              Continuous Care for
+              <span className="block mt-2 sm:mt-3.5 pb-1 flowing-gradient-text font-black">
                 Mother &amp; Baby
               </span>
             </h1>
