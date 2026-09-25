@@ -1,9 +1,10 @@
 import React from "react";
+import Link from "next/link";
 import { UserRole } from "@/types";
 import { ParentIcon, ClinicianIcon, AmbulanceIcon, LogoIcon } from "@/components/icons/PortalIcons";
 
 interface LandingViewProps {
-  onOpenAuthModal: (role: UserRole, mode?: "login" | "signup") => void;
+  onOpenAuthModal?: (role: UserRole, mode?: "login" | "signup") => void;
 }
 
 export function LandingView({ onOpenAuthModal }: LandingViewProps) {
@@ -44,29 +45,29 @@ export function LandingView({ onOpenAuthModal }: LandingViewProps) {
               and emergency referral intelligence into one unbroken health journey.
             </p>
 
-            {/* 3 Call to Action Buttons with Custom Icons */}
+            {/* 3 Call to Action Buttons with Direct Routes */}
             <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-              <button
-                onClick={() => onOpenAuthModal("parent", "login")}
-                className="rounded-full bg-gradient-to-r from-pink-500 to-rose-400 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-pink-500/20 hover:from-pink-600 hover:to-rose-500 transition-all flex items-center gap-2"
+              <Link
+                href="/parent"
+                className="rounded-full bg-gradient-to-r from-pink-500 to-rose-400 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-pink-500/20 hover:from-pink-600 hover:to-rose-500 hover:scale-105 transition-all flex items-center gap-2"
               >
                 <ParentIcon className="w-4 h-4 text-white" />
                 <span>Parent Portal →</span>
-              </button>
-              <button
-                onClick={() => onOpenAuthModal("clinician", "login")}
-                className="rounded-full bg-slate-900 px-6 py-3.5 text-sm font-semibold text-white shadow-md hover:bg-slate-800 transition-all flex items-center gap-2"
+              </Link>
+              <Link
+                href="/clinician"
+                className="rounded-full bg-slate-900 px-6 py-3.5 text-sm font-semibold text-white shadow-md hover:bg-slate-800 hover:scale-105 transition-all flex items-center gap-2"
               >
                 <ClinicianIcon className="w-4 h-4 text-slate-300" />
                 <span>Clinician Triage</span>
-              </button>
-              <button
-                onClick={() => onOpenAuthModal("ambulance", "login")}
-                className="rounded-full bg-red-600 hover:bg-red-700 px-6 py-3.5 text-sm font-semibold text-white shadow-md shadow-red-500/20 transition-all flex items-center gap-2"
+              </Link>
+              <Link
+                href="/ambulance"
+                className="rounded-full bg-red-600 hover:bg-red-700 px-6 py-3.5 text-sm font-semibold text-white shadow-md shadow-red-500/20 hover:scale-105 transition-all flex items-center gap-2"
               >
                 <AmbulanceIcon className="w-4 h-4 text-white" />
                 <span>Ambulance / Hospital</span>
-              </button>
+              </Link>
             </div>
           </div>
         </div>
