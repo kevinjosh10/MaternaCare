@@ -176,13 +176,13 @@ export default function ParentPage() {
 
       if (response.ok) {
         setProfileSaveSuccess(true);
-        setAwsSyncDetails("Encrypted & Securely Synced to Health Record");
+        setAwsSyncDetails("Profile successfully updated");
         setTimeout(() => setProfileSaveSuccess(false), 4500);
       }
     } catch (err) {
       console.error("Profile save error:", err);
       setProfileSaveSuccess(true);
-      setAwsSyncDetails("Saved locally (Offline record active)");
+      setAwsSyncDetails("Profile saved");
     } finally {
       setProfileSaving(false);
     }
@@ -202,10 +202,7 @@ export default function ParentPage() {
     formData.append("patientName", parentProfile.fullName);
     formData.append("userId", "parent");
 
-    const savedColabUrl = typeof window !== "undefined" ? localStorage.getItem("maternacare_colab_ocr_url") : null;
-    if (savedColabUrl) {
-      formData.append("colabUrl", savedColabUrl);
-    }
+
 
     try {
       const response = await fetch("/api/documents/upload", {

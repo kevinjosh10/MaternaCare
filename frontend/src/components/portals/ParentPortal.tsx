@@ -46,8 +46,8 @@ export function ParentPortal({
   onBackToHome,
 }: ParentPortalProps) {
   const [expandedDocId, setExpandedDocId] = useState<string | null>(null);
-  const [colabUrl, setColabUrl] = useState<string>("https://untie-send-transpose.ngrok-free.dev");
-  const [showColabInput, setShowColabInput] = useState(false);
+  
+  
 
   // Model 4 Conversational Brain State
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -80,11 +80,11 @@ export function ParentPortal({
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("maternacare_colab_ocr_url");
+      const stored = null;
       if (stored) {
         setColabUrl(stored);
       } else {
-        localStorage.setItem("maternacare_colab_ocr_url", "https://untie-send-transpose.ngrok-free.dev");
+        
       }
     }
   }, []);
@@ -516,58 +516,7 @@ export function ParentPortal({
 
         </div>
 
-        {/* Model 5 AI OCR Status Pill & Configuration */}
-        <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
-            <span className="font-bold text-slate-800">Document Processor:</span>
-            <span className="text-slate-600 font-mono text-[11px] truncate max-w-xs sm:max-w-md">
-              {colabUrl ? colabUrl : "Integrated Mozilla PDF.js & GPU Full-Text Optical Engine"}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowColabInput(!showColabInput)}
-            className="text-pink-600 hover:text-pink-800 font-semibold underline cursor-pointer"
-          >
-            {showColabInput ? "Close Settings" : "Configure Colab URL"}
-          </button>
-        </div>
 
-        {showColabInput && (
-          <div className="p-4 rounded-2xl bg-pink-50/60 border border-pink-200 space-y-2 text-xs">
-            <label className="block font-semibold text-slate-800">
-              Backend Connection Endpoint:
-            </label>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="text"
-                value={colabUrl}
-                onChange={(e) => {
-                  setColabUrl(e.target.value);
-                  if (typeof window !== "undefined") {
-                    localStorage.setItem("maternacare_colab_ocr_url", e.target.value.trim());
-                  }
-                }}
-                placeholder="https://xxxx.trycloudflare.com or https://xxxx.ngrok-free.app"
-                className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-pink-300 text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-500 font-mono text-xs"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    localStorage.setItem("maternacare_colab_ocr_url", colabUrl.trim());
-                  }
-                  alert("Connection saved successfully!");
-                  setShowColabInput(false);
-                }}
-                className="px-4 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold transition-all shadow-sm cursor-pointer whitespace-nowrap"
-              >
-                Save &amp; Connect
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Upload Dropzone */}
         <form onSubmit={onParentUploadSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
