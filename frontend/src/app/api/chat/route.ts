@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       fullName: patientData?.full_name || patientName,
       gestationalWeeks: patientData?.gestational_weeks ? `${patientData.gestational_weeks} Weeks` : gestationalWeeks,
       knownAllergies: patientData?.known_allergies || "Penicillin (Mild Rash)",
-      medicalConditions: patientData?.medical_conditions || "Previous Gestational Hypertension in 2023",
+      medicalConditions: patientData?.medical_conditions || "Preeclampsia Risk, Gestational Hypertension (142/92 mmHg), Gestational Diabetes Surveillance, Proteinuria (++), Mild Gestational Anemia (Hb 10.8 g/dL)",
       bloodPressure: "142/92 mmHg (Latest Hypertensive Reading)",
     };
 
