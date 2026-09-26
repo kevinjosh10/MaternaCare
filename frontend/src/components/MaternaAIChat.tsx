@@ -91,18 +91,38 @@ export function MaternaAIChat({ patientId = "PAT-DEMO-001" }: { patientId?: stri
           isEmergency: true 
         }]);
       } else if (data.requiresApproval || data.status === "PENDING_APPROVAL" || data.status === "PENDING_DOCTOR_APPROVAL") {
+        const waitingText = data.response || "Since you are asking about medication, I have forwarded your request to your doctor for review. After I get approval from the doctor, I will suggest you the tablet.";
         setMessages((prev) => [...prev, { 
           sender: "ai", 
-          text: data.response || "Your request has been forwarded to a doctor for review.",
+          text: waitingText,
           isBlocked: true
         }]);
+
+        if (data.audio_base64) {
+          try {
+            const audio = new Audio(`data:${data.audio_format || "audio/mp3"};base64,${data.audio_base64}`);
+            audio.play().catch((e) => console.warn("Audio autoplay blocked:", e));
+          } catch (e) {
+            console.warn("Audio playback error:", e);
+          }
+        } else if (typeof window !== "undefined" && window.speechSynthesis) {
+          const utterance = new SpeechSynthesisUtterance(waitingText);
+          utterance.lang = selectedLanguage;
+          window.speechSynthesis.speak(utterance);
+        }
       } else {
         setMessages((prev) => [...prev, { sender: "ai", text: data.response || "I have received your query." }]);
         
-        // Optional: browser TTS
-        if (typeof window !== "undefined" && window.speechSynthesis) {
+        if (data.audio_base64) {
+          try {
+            const audio = new Audio(`data:${data.audio_format || "audio/mp3"};base64,${data.audio_base64}`);
+            audio.play().catch((e) => console.warn("Audio autoplay blocked:", e));
+          } catch (e) {
+            console.warn("Audio playback error:", e);
+          }
+        } else if (typeof window !== "undefined" && window.speechSynthesis) {
           const utterance = new SpeechSynthesisUtterance(data.response);
-          utterance.lang = selectedLanguage; // Ensure it speaks in the selected language!
+          utterance.lang = selectedLanguage;
           window.speechSynthesis.speak(utterance);
         }
       }
