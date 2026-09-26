@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
         urgency,
         location,
         timestamp,
+        dispatchedTo: "AMBULANCE_DRIVER_DIRECT",
       },
       level: "EMERGENCY_DISPATCH",
     });
@@ -66,7 +67,8 @@ export async function POST(req: NextRequest) {
       success: true,
       alertId,
       status: "DISPATCHED",
-      message: `Emergency SOS Alert received for ${patientName}. Transmitted to Hospital and Ambulance Network.`,
+      message: `Emergency SOS Alert received for ${patientName}. Transmitted DIRECTLY to on-call Ambulance Driver Navigation Console (Bypassing Doctor Hub).`,
+      dispatchedTo: "AMBULANCE_DRIVER_DIRECT",
       alert: emergencyPayload,
     });
   } catch (error) {

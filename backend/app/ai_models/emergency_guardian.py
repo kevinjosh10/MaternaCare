@@ -120,15 +120,17 @@ class AmbientEmergencyGuardian:
             "detected_triggers": keywords,
             "original_audio_transcript": original_text,
             "location": location or {"lat": "UNKNOWN", "lng": "UNKNOWN"},
-            "dispatch_status": "AMBULANCE_NETWORK_NOTIFIED_DIRECTLY"
+            "dispatch_status": "AMBULANCE_DRIVER_DIRECT_ALERT",
+            "dispatched_to": "AMBULANCE_DRIVER",
+            "hospital_doctor_bypassed": True
         }
         
-        logger.critical(f"DISPATCHING AMBULANCE DIRECTLY: {json.dumps(dispatch_payload)}")
+        logger.critical(f"DISPATCHING AMBULANCE DRIVER DIRECTLY (BYPASSING DOCTOR): {json.dumps(dispatch_payload)}")
         
         return {
             "emergency_detected": True,
             "dispatch_payload": dispatch_payload,
-            "message": "Critical distress detected in multiple repetitions. Immediate ambulance dispatch protocol initiated."
+            "message": "Critical distress detected in multiple repetitions. Dispatched directly to ambulance driver navigation console (hospital doctor bypassed)."
         }
 
 

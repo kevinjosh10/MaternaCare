@@ -36,7 +36,7 @@ export function AmbulancePortal({ onBackToHome }: AmbulancePortalProps) {
   const handleAcknowledge = () => {
     setIsAwaitingTransfer(true);
     setTransitStatus("DISPATCHED_EN_ROUTE");
-    alert("Emergency referral accepted. Hospital network notified; GPS tracking broadcast active.");
+    alert("Emergency referral accepted. Ambulance Driver accepted. GPS navigation route locked directly to patient coordinates.");
   };
 
   return (

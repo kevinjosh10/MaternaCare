@@ -469,7 +469,7 @@ export function ParentPortal({
   // Model 3: Ambient Distress Shout Recognizer & Emergency SOS Dispatch
   const triggerEmergencySos = async (keyword = "Manual Emergency SOS Button") => {
     setIsSosTriggering(true);
-    setSosStatus("Transmitting Live SOS to Hospital & Ambulance Network...");
+    setSosStatus("Transmitting Live SOS DIRECTLY to Ambulance Driver...");
 
     try {
       const res = await fetch("/api/emergency", {
@@ -486,7 +486,7 @@ export function ParentPortal({
 
       const data = await res.json();
       if (data.success) {
-        setSosStatus(`🚨 EMERGENCY DISPATCH ACTIVE: Alert #${data.alertId} broadcasted to Hospital Hub & On-Call Ambulance.`);
+        setSosStatus(`🚨 EMERGENCY DISPATCH ACTIVE: Alert #${data.alertId} dispatched directly to Ambulance Driver Console & GPS Navigation (Doctor Bypassed).`);
       }
     } catch (err) {
       console.error("SOS trigger error:", err);
