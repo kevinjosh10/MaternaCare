@@ -29,6 +29,19 @@ interface ChatMessage {
   source?: string;
 }
 
+
+const LOCALE_MAP: Record<string, string> = {
+  en: "en-US", hi: "hi-IN", ta: "ta-IN", te: "te-IN", bn: "bn-IN", ml: "ml-IN",
+  mr: "mr-IN", gu: "gu-IN", kn: "kn-IN", pa: "pa-IN", ur: "ur-PK", es: "es-ES",
+  fr: "fr-FR", de: "de-DE", zh: "zh-CN", ar: "ar-SA", ru: "ru-RU", ja: "ja-JP",
+  pt: "pt-BR", it: "it-IT", ko: "ko-KR", tr: "tr-TR", nl: "nl-NL", vi: "vi-VN",
+  pl: "pl-PL", uk: "uk-UA", th: "th-TH", id: "id-ID", ms: "ms-MY", tl: "fil-PH",
+  fa: "fa-IR", he: "he-IL", sv: "sv-SE", no: "nb-NO", da: "da-DK", fi: "fi-FI",
+  cs: "cs-CZ", el: "el-GR", hu: "hu-HU", ro: "ro-RO", sk: "sk-SK", bg: "bg-BG",
+  hr: "hr-HR", sr: "sr-RS", sl: "sl-SI", lt: "lt-LT", lv: "lv-LV", et: "et-EE",
+  sw: "sw-KE", zu: "zu-ZA"
+};
+
 const LANGUAGES = [
   { code: 'en', name: 'English' }, { code: 'hi', name: 'Hindi' }, { code: 'ta', name: 'Tamil' }, { code: 'te', name: 'Telugu' },
   { code: 'bn', name: 'Bengali' }, { code: 'ml', name: 'Malayalam' }, { code: 'mr', name: 'Marathi' }, { code: 'gu', name: 'Gujarati' },
@@ -223,13 +236,50 @@ export function ParentPortal({
 
   // Model 2: Text-to-Voice (TTS) Speech Synthesis
   const speakText = (text: string) => {
-    if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.95;
-    utterance.pitch = 1.0;
-    utterance.lang = selectedLanguage;
-    window.speechSynthesis.speak(utterance);
+    if (!("speechSynthesis" in window)) {
+      console.warn("Speech synthesis not supported in this browser.");
+      return;
+    }
+
+    try {
+      window.speechSynthesis.cancel();
+
+      // Clean text of markdown asterisks or special tokens
+      const clean = text.replace(/[*#_`]/g, "").trim();
+      const utterance = new SpeechSynthesisUtterance(clean);
+      
+      const targetLocale = LOCALE_MAP[selectedLanguage] || selectedLanguage;
+      utterance.lang = targetLocale;
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+
+      // Select matching voice if available
+      const voices = window.speechSynthesis.getVoices();
+      if (voices && voices.length > 0) {
+        const matched = voices.find(
+          (v) => v.lang.toLowerCase() === targetLocale.toLowerCase() ||
+                 v.lang.toLowerCase().replace("_", "-").startsWith(selectedLanguage.toLowerCase())
+        );
+        if (matched) {
+          utterance.voice = matched;
+        }
+      }
+
+      setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = (e) => {
+        console.warn("TTS playback note:", e);
+        setIsSpeaking(false);
+      };
+
+      // Chrome requires a tiny delay after cancel() to avoid premature cut-off
+      setTimeout(() => {
+        window.speechSynthesis.speak(utterance);
+      }, 60);
+    } catch (e) {
+      console.error("speakText error:", e);
+      setIsSpeaking(false);
+    }
   };
 
   // Model 3: Ambient Distress Shout Recognizer & Emergency SOS Dispatch
