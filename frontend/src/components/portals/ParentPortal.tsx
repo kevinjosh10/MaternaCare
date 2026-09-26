@@ -43,23 +43,25 @@ const LOCALE_MAP: Record<string, string> = {
   sw: "sw-KE", zu: "zu-ZA"
 };
 
-const LANGUAGES = [
+const TOP_10_LANGUAGES = [
   { code: 'en', name: 'English' },
   { code: 'hi', name: 'Hindi (हिन्दी)' },
   { code: 'ta', name: 'Tamil (தமிழ்)' },
   { code: 'te', name: 'Telugu (తెలుగు)' },
-  { code: 'bn', name: 'Bengali (বাংলা)' },
   { code: 'ml', name: 'Malayalam (മലയാളം)' },
-  { code: 'mr', name: 'Marathi (मराठी)' },
-  { code: 'gu', name: 'Gujarati (ગુજરાતી)' },
   { code: 'kn', name: 'Kannada (ಕನ್ನಡ)' },
+  { code: 'bn', name: 'Bengali (বাংলা)' },
+  { code: 'mr', name: 'Marathi (मराठी)' },
+  { code: 'es', name: 'Spanish (Español)' },
+  { code: 'fr', name: 'French (Français)' },
+];
+
+const OTHER_LANGUAGES = [
+  { code: 'gu', name: 'Gujarati (ગુજરાતી)' },
   { code: 'pa', name: 'Punjabi (ਪੰਜਾਬੀ)' },
   { code: 'ur', name: 'Urdu (اردو)' },
   { code: 'ne', name: 'Nepali (नेपाली)' },
   { code: 'si', name: 'Sinhala (සිංහල)' },
-  { code: 'my', name: 'Burmese (မြန်မာ)' },
-  { code: 'es', name: 'Spanish (Español)' },
-  { code: 'fr', name: 'French (Français)' },
   { code: 'de', name: 'German (Deutsch)' },
   { code: 'zh', name: 'Chinese Mandarin (中文)' },
   { code: 'ar', name: 'Arabic (العربية)' },
@@ -95,6 +97,8 @@ const LANGUAGES = [
   { code: 'et', name: 'Estonian (Eesti)' },
   { code: 'sw', name: 'Swahili (Kiswahili)' }
 ];
+
+const LANGUAGES = [...TOP_10_LANGUAGES, ...OTHER_LANGUAGES];
 
 export function ParentPortal({
   parentProfile,
@@ -649,9 +653,14 @@ export function ParentPortal({
                               <select
                   value={selectedLanguage}
                   onChange={(e) => setSelectedLanguage(e.target.value)}
-                  className="text-xs px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  className="text-xs px-3 py-1.5 rounded-xl bg-slate-50 border border-pink-200 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-sm"
                 >
-                  {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
+                  <optgroup label="⭐ Top 10 Supported Languages">
+                    {TOP_10_LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
+                  </optgroup>
+                  <optgroup label="🌐 Other Global Languages">
+                    {OTHER_LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
+                  </optgroup>
                 </select>
             </div>
           </div>
