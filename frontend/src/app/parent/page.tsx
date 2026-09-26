@@ -3,11 +3,10 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ParentProfile, PatientDocument, UploadedDocumentResult } from "@/types";
-import { Header } from "@/components/common/Header";
-import { Footer } from "@/components/common/Footer";
 import { ParentPortal } from "@/components/portals/ParentPortal";
 import { HealthDashboard } from "@/components/portals/HealthDashboard";
 import { ParentIcon, LogoIcon } from "@/components/icons/PortalIcons";
+import { Footer } from "@/components/common/Footer";
 
 const initialParentProfile: ParentProfile = {
   id: "priya.sharma@example.com",
@@ -92,6 +91,18 @@ export default function ParentPage() {
     }
   };
 
+  // Restore parent auth from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isAuth = localStorage.getItem("maternacare_parent_auth") === "true" || localStorage.getItem("maternacare_auth_role") === "parent";
+      const savedId = localStorage.getItem("maternacare_auth_identifier") || "priya.sharma@example.com";
+      if (isAuth) {
+        setIsAuthenticated(true);
+      }
+      loadPatientProfile(savedId);
+    }
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
@@ -99,6 +110,11 @@ export default function ParentPage() {
     if (authMode === "login") {
       if ((username.trim() === "parent" && password === "123") || (username.trim() === "admin" && password === "123") || username.trim().length > 0) {
         const lookupId = username.trim() === "parent" ? "priya.sharma@example.com" : username.trim();
+        if (typeof window !== "undefined") {
+          localStorage.setItem("maternacare_parent_auth", "true");
+          localStorage.setItem("maternacare_auth_role", "parent");
+          localStorage.setItem("maternacare_auth_identifier", lookupId);
+        }
         await loadPatientProfile(lookupId);
         setIsAuthenticated(true);
       } else {
@@ -116,11 +132,25 @@ export default function ParentPage() {
         fullName: signupName,
         email: userEmail,
       };
+      if (typeof window !== "undefined") {
+        localStorage.setItem("maternacare_parent_auth", "true");
+        localStorage.setItem("maternacare_auth_role", "parent");
+        localStorage.setItem("maternacare_auth_identifier", userEmail);
+      }
       setParentProfile(newProfile);
       setParentDocuments([]);
       setIsAuthenticated(true);
       saveProfileToAws(newProfile);
     }
+  };
+
+  const handleLogout = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("maternacare_parent_auth");
+      localStorage.removeItem("maternacare_auth_role");
+      localStorage.removeItem("maternacare_auth_identifier");
+    }
+    setIsAuthenticated(false);
   };
 
   const handleAutoFill = () => {
@@ -146,13 +176,13 @@ export default function ParentPage() {
 
       if (response.ok) {
         setProfileSaveSuccess(true);
-        setAwsSyncDetails("Encrypted & Securely Synced to Health Record");
+        setAwsSyncDetails("Profile successfully updated");
         setTimeout(() => setProfileSaveSuccess(false), 4500);
-        setTimeout(() => setShowDashboard(true), 1500);
       }
     } catch (err) {
+      console.error("Profile save error:", err);
       setProfileSaveSuccess(true);
-      setAwsSyncDetails("Saved locally (Offline record active)");
+      setAwsSyncDetails("Profile saved");
     } finally {
       setProfileSaving(false);
     }
@@ -172,10 +202,7 @@ export default function ParentPage() {
     formData.append("patientName", parentProfile.fullName);
     formData.append("userId", "parent");
 
-    const savedColabUrl = typeof window !== "undefined" ? localStorage.getItem("maternacare_colab_ocr_url") : null;
-    if (savedColabUrl) {
-      formData.append("colabUrl", savedColabUrl);
-    }
+
 
     try {
       const response = await fetch("/api/documents/upload", {
@@ -246,6 +273,15 @@ export default function ParentPage() {
     }
   };
 
+  const handleDeleteDocument = (id: string) => {
+    const updated = parentDocuments.filter((d) => d.id !== id);
+    setParentDocuments(updated);
+    if (typeof window !== "undefined") {
+      const patientIdentifier = parentProfile.email || parentProfile.fullName;
+      localStorage.setItem(`maternacare_docs_${patientIdentifier}`, JSON.stringify(updated));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between">
       {/* Header */}
@@ -265,12 +301,25 @@ export default function ParentPage() {
 
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
-              <button
-                onClick={() => setIsAuthenticated(false)}
-                className="text-xs text-gray-500 hover:text-slate-800 font-medium px-3 py-1.5 rounded-lg border border-slate-200"
-              >
-                Log Out
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDashboard(!showDashboard)}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                    showDashboard
+                      ? "bg-pink-600 text-white border-pink-600"
+                      : "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100"
+                  }`}
+                >
+                  {showDashboard ? "📄 View Document Portal" : "📊 Health Dashboard"}
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="text-xs text-gray-500 hover:text-slate-800 font-medium px-3 py-1.5 rounded-lg border border-slate-200 cursor-pointer"
+                >
+                  Log Out
+                </button>
+              </div>
             ) : (
               <Link
                 href="/"
@@ -285,62 +334,70 @@ export default function ParentPage() {
 
       {/* Main Content */}
       <main className="flex-1 py-10">
-        {isAuthenticated && showDashboard ? (
-          <HealthDashboard profile={parentProfile} onBack={() => setShowDashboard(false)} />
-        ) : isAuthenticated ? (
-          <ParentPortal
-            parentProfile={parentProfile}
-            parentDocuments={parentDocuments}
-            profileSaving={profileSaving}
-            profileSaveSuccess={profileSaveSuccess}
-            awsSyncDetails={awsSyncDetails}
-            parentUploadFile={parentUploadFile}
-            isParentUploading={isParentUploading}
-            parentUploadResult={parentUploadResult}
-            onProfileChange={handleProfileChange}
-            onSaveProfile={(e) => {
-              e.preventDefault();
-              saveProfileToAws(parentProfile);
-            }}
-            onParentFileChange={setParentUploadFile}
-            onParentUploadSubmit={handleParentDocumentUpload}
-            onDeleteDocument={(id: string) => {
-              const updated = parentDocuments.filter(d => d.id !== id);
-              setParentDocuments(updated);
-              if (typeof window !== "undefined") {
-                localStorage.setItem(`maternacare_docs_${parentProfile.email || parentProfile.fullName}`, JSON.stringify(updated));
-              }
-            }}
-            onBackToHome={() => setIsAuthenticated(false)}
-          />
+        {isAuthenticated ? (
+          showDashboard ? (
+            <div className="max-w-5xl mx-auto px-4">
+              <HealthDashboard
+                profile={parentProfile}
+                onBack={() => setShowDashboard(false)}
+              />
+            </div>
+          ) : (
+            <ParentPortal
+              parentProfile={parentProfile}
+              parentDocuments={parentDocuments}
+              profileSaving={profileSaving}
+              profileSaveSuccess={profileSaveSuccess}
+              awsSyncDetails={awsSyncDetails}
+              parentUploadFile={parentUploadFile}
+              isParentUploading={isParentUploading}
+              parentUploadResult={parentUploadResult}
+              onProfileChange={handleProfileChange}
+              onSaveProfile={(e) => {
+                e.preventDefault();
+                saveProfileToAws(parentProfile);
+              }}
+              onParentFileChange={setParentUploadFile}
+              onParentUploadSubmit={handleParentDocumentUpload}
+              onDeleteDocument={handleDeleteDocument}
+              onBackToHome={handleLogout}
+            />
+          )
         ) : (
           <div className="max-w-md mx-auto px-4">
             <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200/80">
-              {/* Card Header */}
               <div className="text-center mb-6">
                 <div className="w-12 h-12 rounded-2xl bg-pink-100 text-pink-600 flex items-center justify-center mx-auto mb-3 shadow-sm ring-2 ring-pink-100">
                   <ParentIcon className="w-6 h-6" />
                 </div>
-                <h1 className="text-2xl font-extrabold text-slate-900">Parent / Mother Portal</h1>
+                <h1 className="text-2xl font-extrabold text-slate-900">Maternal Health Portal</h1>
                 <p className="text-xs text-gray-500 mt-1">
-                  {authMode === "login"
-                    ? "Sign in to access your maternal health records and upload medical reports."
-                    : "Create your continuous encrypted maternal health profile."}
+                  Continuous Antenatal Care, AI Health Memory &amp; Emergency Guardian.
                 </p>
               </div>
 
-              {/* Mode Switcher */}
-              <div className="flex justify-center gap-4 text-xs font-semibold mb-5 border-b border-gray-100 pb-3">
+              <div className="mb-4 p-2.5 rounded-xl bg-pink-50/70 border border-pink-200/60 flex items-center justify-between text-xs">
+                <div className="text-pink-900">
+                  <span className="font-semibold text-pink-700">Demo Account:</span> parent / 123
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAutoFill}
+                  className="font-medium text-pink-600 hover:text-pink-800 underline cursor-pointer"
+                >
+                  Fill credentials
+                </button>
+              </div>
+
+              <div className="flex p-1 bg-slate-100 rounded-xl mb-4 text-xs font-semibold">
                 <button
                   type="button"
                   onClick={() => {
                     setAuthMode("login");
                     setErrorMessage("");
                   }}
-                  className={`pb-1 ${
-                    authMode === "login"
-                      ? "text-pink-600 border-b-2 border-pink-500"
-                      : "text-gray-400 hover:text-gray-600"
+                  className={`flex-1 py-1.5 rounded-lg transition-all ${
+                    authMode === "login" ? "bg-white text-pink-700 shadow-sm" : "text-gray-500"
                   }`}
                 >
                   Sign In
@@ -351,42 +408,25 @@ export default function ParentPage() {
                     setAuthMode("signup");
                     setErrorMessage("");
                   }}
-                  className={`pb-1 ${
-                    authMode === "signup"
-                      ? "text-pink-600 border-b-2 border-pink-500"
-                      : "text-gray-400 hover:text-gray-600"
+                  className={`flex-1 py-1.5 rounded-lg transition-all ${
+                    authMode === "signup" ? "bg-white text-pink-700 shadow-sm" : "text-gray-500"
                   }`}
                 >
-                  Create New Profile
-                </button>
-              </div>
-
-              {/* Quick Auto-fill */}
-              <div className="mb-4 p-2.5 rounded-xl bg-pink-50/70 border border-pink-200/60 flex items-center justify-between text-xs">
-                <div className="text-pink-900">
-                  <span className="font-semibold text-pink-700">Demo Account:</span> parent / 123
-                </div>
-                <button
-                  type="button"
-                  onClick={handleAutoFill}
-                  className="font-medium text-pink-600 hover:text-pink-800 underline"
-                >
-                  Auto-fill
+                  New Patient Sign Up
                 </button>
               </div>
 
               {errorMessage && (
-                <div className="mb-4 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+                <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-700 text-xs font-medium border border-red-200">
                   {errorMessage}
                 </div>
               )}
 
-              {/* Login / Sign Up Form */}
               <form onSubmit={handleLogin} className="space-y-4">
                 {authMode === "signup" && (
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Mother / Parent Full Name
+                      Mother&apos;s Full Name
                     </label>
                     <input
                       type="text"
@@ -394,62 +434,53 @@ export default function ParentPage() {
                       value={signupName}
                       onChange={(e) => setSignupName(e.target.value)}
                       placeholder="e.g. Priya Sharma"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none"
                     />
                   </div>
                 )}
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Email Address or Username
+                    {authMode === "login" ? "Username or Registered Mobile" : "Email Address / Identifier"}
                   </label>
                   <input
                     type="text"
                     required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="e.g. parent or priya.sharma@example.com"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none"
+                    placeholder={authMode === "login" ? "parent or your mobile" : "priya.sharma@example.com"}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none"
                   />
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-semibold text-slate-700">Password</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none pr-9"
+                    />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="text-[11px] text-pink-600 hover:text-pink-700 font-medium"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
                     >
                       {showPassword ? "Hide" : "Show"}
                     </button>
                   </div>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="e.g. 123"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none"
-                  />
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-pink-500 to-rose-400 text-white font-bold text-sm shadow-md shadow-pink-500/20 hover:from-pink-600 hover:to-rose-500 transition-all"
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-400 text-white font-bold text-xs shadow-md shadow-pink-500/20 hover:from-pink-600 hover:to-rose-500 transition-all cursor-pointer"
                 >
-                  {authMode === "login" ? "Sign In to Parent Portal →" : "Create & Access Maternal Profile →"}
+                  {authMode === "login" ? "Access Maternal Profile →" : "Register Maternal Account →"}
                 </button>
               </form>
-
-              <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-gray-500">
-                <Link href="/clinician" className="hover:text-pink-600">
-                  Are you a Clinician? →
-                </Link>
-                <Link href="/ambulance" className="hover:text-red-600">
-                  Ambulance Hub →
-                </Link>
-              </div>
             </div>
           </div>
         )}
