@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
           headers: {
             "Content-Type": "application/json",
             "ngrok-skip-browser-warning": "1",
+            "User-Agent": "MaternaCare-API-Client/1.0",
           },
           body: JSON.stringify({
             message,
