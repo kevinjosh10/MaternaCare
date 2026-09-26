@@ -265,7 +265,7 @@ class LocalNLPQAEngine:
         if genai and api_key:
             try:
                 genai.configure(api_key=api_key)
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                model = genai.GenerativeModel('gemini-3.8-flash')
                 prompt = f"You are a helpful, empathetic pregnancy assistant for MaternaCare. A pregnant mother is asking: '{query}'. Provide a brief, comforting, and informative response in 2-3 sentences. Do not prescribe medication."
                 response = model.generate_content(prompt)
                 ai_text = response.text.replace('*', '').strip()

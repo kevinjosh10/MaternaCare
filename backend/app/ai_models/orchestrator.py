@@ -151,14 +151,35 @@ class VoiceToVoiceMedicalOrchestrator:
                 "sample_rate": tts_res["sample_rate"]
             })
 
+        # Step 4: Multi-Lingual Translation Layer (Model 1)
+        final_patient_text = clinical_analysis.patient_friendly_english
+        target_lang = language_hint or detected_lang or "en"
+        
+        if target_lang and target_lang.lower() not in ["en", "en-us", "en-in", "english"]:
+            try:
+                import os, dotenv
+                dotenv.load_dotenv()
+                api_key = os.environ.get("GEMINI_API_KEY", "")
+                if api_key:
+                    import google.generativeai as genai
+                    genai.configure(api_key=api_key)
+                    model = genai.GenerativeModel('gemini-3.8-flash')
+                    prompt = f"Translate the following medical advice for a pregnant woman directly and naturally into the language with code '{target_lang}'. Do not add explanations, provide ONLY the natural translation in the target language's native script:\n\n{final_patient_text}"
+                    res = model.generate_content(prompt)
+                    if res.text:
+                        final_patient_text = res.text.replace('*', '').strip()
+                        trace["steps"].append({"step": "GEMINI_LANGUAGE_TRANSLATION", "target_lang": target_lang})
+            except Exception as e:
+                logger.error(f"Translation to {target_lang} failed: {e}")
+
         trace["total_pipeline_ms"] = round((time.time() - pipeline_start) * 1000, 2)
 
         return {
             "transcribed_query": query_text,
-            "detected_language": detected_lang,
+            "detected_language": target_lang,
             "status": "COMPLETED",
             "medical_advice_text": clinical_analysis.medical_advice_english,
-            "patient_friendly_text": clinical_analysis.patient_friendly_english,
+            "patient_friendly_text": final_patient_text,
             "detected_syndromes": clinical_analysis.detected_syndromes,
             "audio_response_base64": audio_response_b64,
             "audio_format": "audio/wav" if audio_response_b64 else None,
