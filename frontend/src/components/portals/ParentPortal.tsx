@@ -137,6 +137,26 @@ export function ParentPortal({
   }, []);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isAlwaysOnCompanion, setIsAlwaysOnCompanion] = useState(true);
+
+  // References to keep event callbacks perfectly in sync without stale closures
+  const alwaysOnRef = useRef(true);
+  const isSpeakingRef = useRef(false);
+  const isChatLoadingRef = useRef(false);
+  const recognitionInstanceRef = useRef<any>(null);
+  const autoRestartTimerRef = useRef<any>(null);
+
+  useEffect(() => {
+    alwaysOnRef.current = isAlwaysOnCompanion;
+  }, [isAlwaysOnCompanion]);
+
+  useEffect(() => {
+    isSpeakingRef.current = isSpeaking;
+  }, [isSpeaking]);
+
+  useEffect(() => {
+    isChatLoadingRef.current = isChatLoading;
+  }, [isChatLoading]);
 
   // Model 3 Ambient Distress Shout Recognizer State
   const [isAmbientListening, setIsAmbientListening] = useState(false);
@@ -145,11 +165,20 @@ export function ParentPortal({
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Auto-activate All-Time Companion on entry
   useEffect(() => {
+    let timer: any;
     if (typeof window !== "undefined") {
-      // Empty
+      // Start listening automatically 800ms after entering the account!
+      timer = setTimeout(() => {
+        startContinuousListening();
+      }, 800);
     }
-  }, []);
+    return () => {
+      clearTimeout(timer);
+      stopContinuousListening();
+    };
+  }, [selectedLanguage]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -221,26 +250,35 @@ export function ParentPortal({
     }
   };
 
-  // Model 2: Voice-to-Text (STT) Speech Recognition
-  const toggleVoiceInput = () => {
+  // Continuous Companion Voice Engine
+  const startContinuousListening = () => {
+    if (typeof window === "undefined") return;
     if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
-      alert("Speech recognition is not supported in this browser. Please use Google Chrome or Edge.");
       return;
     }
 
-    if (isListening) {
-      setIsListening(false);
+    // Do not listen while the AI companion is speaking or generating an answer
+    if (isSpeakingRef.current || isChatLoadingRef.current) {
       return;
     }
 
     try {
+      if (recognitionInstanceRef.current) {
+        try { recognitionInstanceRef.current.abort(); } catch (e) {}
+      }
+
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = selectedLanguage;
+      recognitionInstanceRef.current = recognition;
 
-      recognition.onstart = () => setIsListening(true);
+      recognition.continuous = false; // Capture continuous utterances naturally
+      recognition.interimResults = true;
+      recognition.lang = LOCALE_MAP[selectedLanguage] || selectedLanguage;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
       recognition.onresult = (event: any) => {
         let interimTranscript = "";
         let finalTranscript = "";
@@ -256,22 +294,65 @@ export function ParentPortal({
         if (interimTranscript) {
           setInputQuery(interimTranscript);
         }
-        if (finalTranscript) {
+        if (finalTranscript && finalTranscript.trim().length > 1) {
           setInputQuery(finalTranscript);
+          // Send to model automatically without clicking!
           handleSendMessage(finalTranscript);
-          recognition.stop();
+          try { recognition.stop(); } catch (e) {}
         }
       };
+
       recognition.onerror = (err: any) => {
-        console.warn("Speech recognition note:", err);
+        console.warn("Speech recognition event:", err.error || err);
         setIsListening(false);
+        // If silence or network hiccup, auto-resume listening if companion is active
+        if (alwaysOnRef.current && !isSpeakingRef.current && !isChatLoadingRef.current) {
+          clearTimeout(autoRestartTimerRef.current);
+          autoRestartTimerRef.current = setTimeout(() => {
+            startContinuousListening();
+          }, 600);
+        }
       };
-      recognition.onend = () => setIsListening(false);
+
+      recognition.onend = () => {
+        setIsListening(false);
+        // Automatically restart listening if companion is active and not currently speaking
+        if (alwaysOnRef.current && !isSpeakingRef.current && !isChatLoadingRef.current) {
+          clearTimeout(autoRestartTimerRef.current);
+          autoRestartTimerRef.current = setTimeout(() => {
+            startContinuousListening();
+          }, 400);
+        }
+      };
 
       recognition.start();
     } catch (e) {
-      console.warn("Speech recognition error:", e);
+      console.warn("startContinuousListening note:", e);
       setIsListening(false);
+    }
+  };
+
+  const stopContinuousListening = () => {
+    clearTimeout(autoRestartTimerRef.current);
+    if (recognitionInstanceRef.current) {
+      try {
+        recognitionInstanceRef.current.abort();
+      } catch (e) {}
+    }
+    setIsListening(false);
+  };
+
+  const toggleVoiceInput = () => {
+    if (isAlwaysOnCompanion) {
+      // User tapped mic while active -> pause companion mode
+      setIsAlwaysOnCompanion(false);
+      alwaysOnRef.current = false;
+      stopContinuousListening();
+    } else {
+      // User tapped mic to resume companion mode
+      setIsAlwaysOnCompanion(true);
+      alwaysOnRef.current = true;
+      startContinuousListening();
     }
   };
 
@@ -307,10 +388,23 @@ export function ParentPortal({
       }
 
       setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        isSpeakingRef.current = false;
+        // Hands-free companion: resume listening immediately after finishing speaking!
+        if (alwaysOnRef.current) {
+          setTimeout(() => {
+            startContinuousListening();
+          }, 300);
+        }
+      };
       utterance.onerror = (e) => {
         console.warn("TTS playback note:", e);
         setIsSpeaking(false);
+        isSpeakingRef.current = false;
+        if (alwaysOnRef.current) {
+          setTimeout(() => startContinuousListening(), 300);
+        }
       };
 
       // Chrome requires a tiny delay after cancel() to avoid premature cut-off
@@ -331,8 +425,23 @@ export function ParentPortal({
         window.speechSynthesis?.cancel(); // Cancel any robotic browser voice
         const audio = new Audio("data:audio/mp3;base64," + b64);
         setIsSpeaking(true);
-        audio.onended = () => setIsSpeaking(false);
-        audio.onerror = () => setIsSpeaking(false);
+        audio.onended = () => {
+          setIsSpeaking(false);
+          isSpeakingRef.current = false;
+          // Hands-free companion: resume listening immediately after finishing speaking!
+          if (alwaysOnRef.current) {
+            setTimeout(() => {
+              startContinuousListening();
+            }, 300);
+          }
+        };
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          isSpeakingRef.current = false;
+          if (alwaysOnRef.current) {
+            setTimeout(() => startContinuousListening(), 300);
+          }
+        };
         audio.play().catch((err) => {
           console.warn("Browser autoplay note (click speak button to play):", err);
           setIsSpeaking(false);
@@ -570,35 +679,79 @@ export function ParentPortal({
           ))}
         </div>
 
-        {/* Central Voice AI Interface */}
-        <div className="flex flex-col items-center justify-center py-6 bg-slate-50/50 rounded-2xl border border-slate-100 mb-2">
-          <div className="relative mb-4">
+        {/* Central Voice AI Interface: Continuous Hands-Free Companion */}
+        <div className="flex flex-col items-center justify-center py-6 bg-gradient-to-b from-pink-50/40 to-slate-50/80 rounded-3xl border border-pink-100/80 mb-2 relative overflow-hidden">
+          
+          {/* Status Badge */}
+          <div className="mb-3">
+            {isSpeaking ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-purple-100 text-purple-700 animate-pulse border border-purple-200">
+                <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                🔊 Companion Speaking...
+              </span>
+            ) : isChatLoading ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700 animate-pulse border border-amber-200">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                🧠 Medical Brain Thinking...
+              </span>
+            ) : isListening ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                🟢 All-Time Companion Listening (Hands-Free)
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                ⚪ Companion Paused (Tap to Resume)
+              </span>
+            )}
+          </div>
+
+          <div className="relative mb-3">
             {isListening && (
-              <div className="absolute inset-0 rounded-full bg-pink-400 animate-ping opacity-75"></div>
+              <div className="absolute inset-0 rounded-full bg-pink-400 animate-ping opacity-60"></div>
+            )}
+            {isSpeaking && (
+              <div className="absolute inset-0 rounded-full bg-purple-400 animate-ping opacity-60"></div>
             )}
             <button
               type="button"
               onClick={toggleVoiceInput}
-              className={`relative z-10 w-20 h-20 rounded-full flex items-center justify-center transition-all shadow-lg cursor-pointer ${
-                isListening
-                  ? "bg-red-500 text-white scale-110 shadow-red-500/40"
-                  : "bg-gradient-to-br from-pink-500 to-rose-500 text-white hover:scale-105 shadow-pink-500/30"
+              className={`relative z-10 w-20 h-20 rounded-full flex items-center justify-center transition-all shadow-xl cursor-pointer ${
+                isSpeaking
+                  ? "bg-gradient-to-br from-purple-500 to-indigo-600 text-white scale-105 shadow-purple-500/40"
+                  : isListening
+                    ? "bg-gradient-to-br from-pink-500 to-rose-600 text-white scale-110 shadow-pink-500/50 ring-4 ring-pink-200"
+                    : "bg-slate-300 text-slate-600 hover:bg-slate-400"
               }`}
+              title={isAlwaysOnCompanion ? "Companion Active (Tap to Pause)" : "Companion Paused (Tap to Resume)"}
             >
-              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-              </svg>
+              {isSpeaking ? (
+                <svg className="w-8 h-8 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+              ) : (
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+              )}
             </button>
           </div>
-          <div className="text-center px-4">
-            <h3 className="text-sm font-bold text-slate-800 mb-1">
-              {isListening ? "Listening to you..." : "Tap to Speak"}
+
+          <div className="text-center px-4 max-w-md">
+            <h3 className="text-xs font-bold text-slate-800 mb-0.5">
+              {isSpeaking 
+                ? "Speaking aloud..." 
+                : isChatLoading 
+                  ? "Evaluating clinical guidance..." 
+                  : isListening 
+                    ? "I am listening to you continuously..." 
+                    : "Continuous mode paused"}
             </h3>
-            <p className="text-xs text-slate-500 h-4">
+            <p className="text-[11px] text-slate-500 min-h-[1.25rem]">
               {isListening && inputQuery ? (
-                <span className="italic text-pink-600">"{inputQuery}"</span>
+                <span className="italic text-pink-600 font-medium">&quot;{inputQuery}&quot;</span>
               ) : (
-                "MaternaCare Voice AI is ready"
+                "Speak naturally anytime — no need to click each time."
               )}
             </p>
           </div>
