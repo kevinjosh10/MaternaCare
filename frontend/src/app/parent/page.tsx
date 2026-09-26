@@ -273,12 +273,19 @@ export default function ParentPage() {
     }
   };
 
-  const handleDeleteDocument = (id: string) => {
+  const handleDeleteDocument = async (id: string) => {
     const updated = parentDocuments.filter((d) => d.id !== id);
     setParentDocuments(updated);
     if (typeof window !== "undefined") {
       const patientIdentifier = parentProfile.email || parentProfile.fullName;
       localStorage.setItem(`maternacare_docs_${patientIdentifier}`, JSON.stringify(updated));
+    }
+    
+    // Sync deletion with PostgreSQL backend
+    try {
+      await fetch(`/api/documents/${id}`, { method: "DELETE" });
+    } catch (e) {
+      console.warn("Failed to delete from DB", e);
     }
   };
 
