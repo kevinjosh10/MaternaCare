@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
           : `${pythonServerUrl.replace(/\/$/, "")}/api/chat`;
 
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 4000);
+        const timeout = setTimeout(() => controller.abort(), 45000); // 45 seconds timeout
 
         const pyResponse = await fetch(endpoint, {
           method: "POST",
