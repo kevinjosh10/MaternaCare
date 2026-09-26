@@ -131,7 +131,7 @@ export function ParentPortal({
         };
         setChatMessages((prev) => [...prev, assistantMsg]);
 
-        if ("speechSynthesis" in window && isSpeaking) {
+        if ("speechSynthesis" in window) {
           speakText(assistantMsg.text);
         }
       }
@@ -166,16 +166,30 @@ export function ParentPortal({
     try {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
+      recognition.continuous = true;
+      recognition.interimResults = true;
       recognition.lang = selectedLanguage === "hi" ? "hi-IN" : selectedLanguage === "ta" ? "ta-IN" : "en-IN";
 
       recognition.onstart = () => setIsListening(true);
       recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        if (transcript) {
-          setInputQuery(transcript);
-          handleSendMessage(transcript);
+        let interimTranscript = "";
+        let finalTranscript = "";
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+
+        if (interimTranscript) {
+          setInputQuery(interimTranscript);
+        }
+        if (finalTranscript) {
+          setInputQuery(finalTranscript);
+          handleSendMessage(finalTranscript);
+          recognition.stop();
         }
       };
       recognition.onerror = (err: any) => {
@@ -411,6 +425,40 @@ export function ParentPortal({
           ))}
         </div>
 
+        {/* Central Voice AI Interface */}
+        <div className="flex flex-col items-center justify-center py-6 bg-slate-50/50 rounded-2xl border border-slate-100 mb-2">
+          <div className="relative mb-4">
+            {isListening && (
+              <div className="absolute inset-0 rounded-full bg-pink-400 animate-ping opacity-75"></div>
+            )}
+            <button
+              type="button"
+              onClick={toggleVoiceInput}
+              className={`relative z-10 w-20 h-20 rounded-full flex items-center justify-center transition-all shadow-lg cursor-pointer ${
+                isListening
+                  ? "bg-red-500 text-white scale-110 shadow-red-500/40"
+                  : "bg-gradient-to-br from-pink-500 to-rose-500 text-white hover:scale-105 shadow-pink-500/30"
+              }`}
+            >
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+            </button>
+          </div>
+          <div className="text-center px-4">
+            <h3 className="text-sm font-bold text-slate-800 mb-1">
+              {isListening ? "Listening to you..." : "Tap to Speak"}
+            </h3>
+            <p className="text-xs text-slate-500 h-4">
+              {isListening && inputQuery ? (
+                <span className="italic text-pink-600">"{inputQuery}"</span>
+              ) : (
+                "MaternaCare Voice AI is ready"
+              )}
+            </p>
+          </div>
+        </div>
+
         {/* Chat History Box */}
         <div className="h-80 overflow-y-auto rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-3">
           {chatMessages.map((msg) => (
@@ -473,18 +521,7 @@ export function ParentPortal({
             placeholder="Ask anything about symptoms, diet, vitals, or your baby..."
             className="flex-1 px-4 py-3 rounded-2xl border border-slate-200 text-xs focus:ring-2 focus:ring-pink-500 outline-none"
           />
-          <button
-            type="button"
-            onClick={toggleVoiceInput}
-            className={`p-3 rounded-2xl border transition-all cursor-pointer ${
-              isListening
-                ? "bg-red-500 text-white border-red-600 animate-pulse"
-                : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
-            }`}
-            title="Speak Question "
-          >
-            <span className="text-base">🎙️</span>
-          </button>
+
           <button
             type="button"
             disabled={isChatLoading || !inputQuery.trim()}
