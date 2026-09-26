@@ -133,10 +133,6 @@ export function ClinicianPortal({
       {/* Top Bar with Live Sync Status */}
       <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 text-xs text-pink-300 font-semibold mb-3 border border-slate-700">
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-ping"></span>
-            Encrypted Medical Cloud Active &bull; AP-South-1
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-blue-400">
               <ClinicianIcon className="w-6 h-6" />
@@ -146,22 +142,6 @@ export function ClinicianPortal({
           <p className="text-slate-400 text-xs sm:text-sm mt-1">
             Active Facility: Community Health Centre (CHC) &bull; Lead Clinician: Dr. Ananya Sen, MD, DGO
           </p>
-        </div>
-
-        {/* Clinical Service Health Badges */}
-        <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3">
-          <div className="flex items-center gap-1.5 text-slate-300">
-            <span className="text-green-400">●</span> RDS Health Vault: Active
-          </div>
-          <div className="flex items-center gap-1.5 text-slate-300">
-            <span className="text-green-400">●</span> AI Assistant: Connected
-          </div>
-          <div className="flex items-center gap-1.5 text-slate-300">
-            <span className="text-green-400">●</span> CloudWatch Audit: Synced
-          </div>
-          <div className="flex items-center gap-1.5 text-slate-300">
-            <span className="text-green-400">●</span> Doc Scanner: Ready
-          </div>
         </div>
       </div>
 
@@ -349,7 +329,7 @@ export function ClinicianPortal({
               </button>
               <button
                 type="button"
-                onClick={() => alert("Exporting encrypted clinical handover report to Secure Health Vault...")}
+                onClick={() => alert("Exporting clinical handover report...")}
                 className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all cursor-pointer"
               >
                 Export Clinical Handover Summary
@@ -494,10 +474,7 @@ export function ClinicianPortal({
               <h3 className="text-base font-bold text-slate-900">
                 Medical Record OCR Scanner
               </h3>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-green-100 text-green-800 text-[10px] font-bold">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                Scanner Active
-              </span>
+
             </div>
             <p className="text-xs text-gray-500">
               Upload multi-page paper discharge summaries or antenatal cards to extract all text into unified Markdown (.md).
@@ -540,7 +517,7 @@ export function ClinicianPortal({
                 </>
               ) : (
                 <>
-                  <span>Extract &amp; Sync to Health Vault →</span>
+                  <span>Extract &amp; Save →</span>
                 </>
               )}
             </button>

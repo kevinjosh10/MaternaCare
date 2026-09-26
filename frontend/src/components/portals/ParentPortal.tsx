@@ -523,9 +523,7 @@ export function ParentPortal({
               Upload multi-page lab reports, ultrasound scans, or antenatal cards to extract all text verbatim and generate a single unified Markdown (.md) document.
             </p>
           </div>
-          <span className="text-xs font-semibold text-pink-700 bg-pink-50 px-3 py-1 rounded-full border border-pink-200 self-start sm:self-auto">
-            Encrypted Health Vault
-          </span>
+
         </div>
 
         {/* Model 5 AI OCR Status Pill & Configuration */}

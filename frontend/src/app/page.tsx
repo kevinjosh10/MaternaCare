@@ -172,13 +172,13 @@ export default function Home() {
 
       if (response.ok) {
         setProfileSaveSuccess(true);
-        setAwsSyncDetails("Encrypted & Securely Synced to Health Record");
+        setAwsSyncDetails("Profile successfully updated");
         setTimeout(() => setProfileSaveSuccess(false), 4500);
       }
     } catch (err) {
       console.error("Profile save error:", err);
       setProfileSaveSuccess(true);
-      setAwsSyncDetails("Saved locally (Offline record active)");
+      setAwsSyncDetails("Profile saved");
     } finally {
       setProfileSaving(false);
     }
