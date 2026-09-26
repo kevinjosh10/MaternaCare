@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No message provided" }, { status: 400 });
     }
 
-    const pythonServerUrl = "https://untie-send-transpose.ngrok-free.dev";
+    const pythonServerUrl = "https://fluffy-doors-reply.loca.lt";
 
     // 1. Fetch Patient Context from RDS Database for Enhanced Health Memory
     let patientData: any = null;
