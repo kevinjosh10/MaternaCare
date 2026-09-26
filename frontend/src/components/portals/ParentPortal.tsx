@@ -62,6 +62,12 @@ export function ParentPortal({
   const [inputQuery, setInputQuery] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("en");
+  const [customBackendUrl, setCustomBackendUrl] = useState("");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("materna_backend_url");
+    if (saved) setCustomBackendUrl(saved);
+  }, []);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
@@ -113,6 +119,7 @@ export function ParentPortal({
           patientName: parentProfile.fullName,
           gestationalWeeks: `${parentProfile.gestationalWeeks} Weeks`,
           language: selectedLanguage,
+          customBackendUrl: customBackendUrl,
         }),
       });
 
@@ -369,19 +376,31 @@ export function ParentPortal({
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-slate-600">Language:</label>
-            <select
-              value={selectedLanguage}
-              onChange={(e) => setSelectedLanguage(e.target.value)}
-              className="text-xs px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-pink-500"
-            >
-              <option value="en">English</option>
-              <option value="hi">हिंदी (Hindi)</option>
-              <option value="ta">தமிழ் (Tamil)</option>
-              <option value="te">తెలుగు (Telugu)</option>
-              <option value="es">Español</option>
-            </select>
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-semibold text-slate-600">Language:</label>
+              <select
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value)}
+                className="text-xs px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-pink-500"
+              >
+                <option value="en">English</option>
+                <option value="hi">हिंदी (Hindi)</option>
+                <option value="ta">தமிழ் (Tamil)</option>
+                <option value="te">తెలుగు (Telugu)</option>
+                <option value="es">Español</option>
+              </select>
+            </div>
+            <input
+              type="text"
+              value={customBackendUrl}
+              onChange={(e) => {
+                setCustomBackendUrl(e.target.value);
+                localStorage.setItem("materna_backend_url", e.target.value);
+              }}
+              placeholder="ngrok URL (optional)"
+              className="text-xs px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-pink-500 w-48"
+            />
           </div>
         </div>
 
