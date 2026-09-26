@@ -112,7 +112,21 @@ export async function POST(req: NextRequest) {
     let urgency: "HIGH" | "MEDIUM" | "ROUTINE" = "ROUTINE";
 
     // Clinical Logic Rules with Obstetric Guidelines & Patient Health Memory
-    if (lower.includes("headache") || lower.includes("sar dard") || lower.includes("sir dard") || lower.includes("thalavali") || lower.includes("pain") || lower.includes("dard")) {
+    if (lower.includes("fever") || lower.includes("bukhar") || lower.includes("temperature")) {
+      urgency = "HIGH";
+      category = "CLINICAL_SYMPTOM";
+      requiresApproval = true;
+      proposedAdvice = "Maternal fever detected. Advise immediate hydration, paracetamol for temperature control, and urgent clinical evaluation to rule out chorioamnionitis or UTI.";
+
+      reply = `Hello ${patientContext.fullName}. A fever during your ${patientContext.gestationalWeeks} can be a sign of infection. Please stay hydrated and contact your doctor or visit the emergency triage immediately for a full evaluation.`;
+    } else if (lower.includes("bleeding") || lower.includes("blood") || lower.includes("spotting") || lower.includes("khoon")) {
+      urgency = "HIGH";
+      category = "CLINICAL_SYMPTOM";
+      requiresApproval = true;
+      proposedAdvice = "Vaginal bleeding reported in third trimester. Suspect possible placental abruption or previa. Trigger immediate emergency dispatch protocol.";
+
+      reply = `Hello ${patientContext.fullName}. Any bleeding at ${patientContext.gestationalWeeks} is considered a medical emergency. Please lie down immediately and alert your on-call nurse or press the SOS button. An ambulance can be dispatched if necessary.`;
+    } else if (lower.includes("headache") || lower.includes("sar dard") || lower.includes("sir dard") || lower.includes("thalavali") || lower.includes("pain") || lower.includes("dard")) {
       urgency = "HIGH";
       category = "CLINICAL_SYMPTOM";
       requiresApproval = true;
