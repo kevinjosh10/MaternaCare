@@ -1,13 +1,13 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { logAuditTrail } from "@/lib/aws-cloudwatch";
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const docId = params.id;
+    const { id: docId } = await context.params;
     if (!docId) {
       return NextResponse.json({ error: "Missing document ID" }, { status: 400 });
     }
