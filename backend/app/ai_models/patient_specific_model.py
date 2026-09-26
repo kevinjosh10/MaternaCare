@@ -1,3 +1,9 @@
+import os
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
+
 import re
 import json
 import os
@@ -242,6 +248,7 @@ class LocalNLPQAEngine:
                 "patient_friendly_english": voice_friendly
             }
 
+
         # Safe fallback / Out of domain catch-all
         if "medicine" in query.lower() or "tablet" in query.lower() or "pill" in query.lower():
             return {
@@ -249,10 +256,32 @@ class LocalNLPQAEngine:
                 "patient_friendly_english": "I understand you are asking about medicine, but I need to know a little more about your symptoms. I have sent your request to your doctor for review and prescription."
             }
             
+        # ---------- GEMINI LLM INTEGRATION ----------
+        
+        import dotenv
+        dotenv.load_dotenv()
+        api_key = os.environ.get("GEMINI_API_KEY", "")
+
+        if genai and api_key:
+            try:
+                genai.configure(api_key=api_key)
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                prompt = f"You are a helpful, empathetic pregnancy assistant for MaternaCare. A pregnant mother is asking: '{query}'. Provide a brief, comforting, and informative response in 2-3 sentences. Do not prescribe medication."
+                response = model.generate_content(prompt)
+                ai_text = response.text.replace('*', '').strip()
+                return {
+                    "medical_advice_english": f"Patient asked open-ended query. Handled by Generative AI: {ai_text}",
+                    "patient_friendly_english": ai_text
+                }
+            except Exception as e:
+                pass
+        # ---------------------------------------------
+
         return {
             "medical_advice_english": f"Patient query unmatched. '{query}'. Advised standard care.",
             "patient_friendly_english": "I am a companion exclusively dedicated to tracking your pregnancy health and answering your maternity questions. If you have a specific pregnancy symptom or test you'd like to ask about, please let me know!"
         }
+
 
 # Singleton instance of our localized, trained AI
 patient_specific_qa_model = LocalNLPQAEngine()
