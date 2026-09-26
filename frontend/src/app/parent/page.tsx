@@ -6,6 +6,7 @@ import { ParentProfile, PatientDocument, UploadedDocumentResult } from "@/types"
 import { ParentPortal } from "@/components/portals/ParentPortal";
 import { HealthDashboard } from "@/components/portals/HealthDashboard";
 import { ParentIcon, LogoIcon } from "@/components/icons/PortalIcons";
+import { Footer } from "@/components/common/Footer";
 
 const initialParentProfile: ParentProfile = {
   id: "priya.sharma@example.com",
@@ -341,7 +342,6 @@ export default function ParentPage() {
             <div className="max-w-5xl mx-auto px-4">
               <HealthDashboard
                 profile={parentProfile}
-                documents={parentDocuments}
                 onBack={() => setShowDashboard(false)}
               />
             </div>
