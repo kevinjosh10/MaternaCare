@@ -177,44 +177,6 @@ export function ParentPortal({
     };
   }, []);
 
-  // Poll for approved doctor recommendations and deliver directly to the mother's chat
-  const notifiedApprovalIdsRef = useRef<Set<string>>(new Set(["APP-1002"]));
-  useEffect(() => {
-    const checkApprovedPrescriptions = async () => {
-      try {
-        const res = await fetch("/api/doctor/approval");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!data.approvals || !Array.isArray(data.approvals)) return;
-
-        for (const app of data.approvals) {
-          if (
-            (app.status === "APPROVED" || app.status === "MODIFIED") &&
-            !notifiedApprovalIdsRef.current.has(app.id)
-          ) {
-            notifiedApprovalIdsRef.current.add(app.id);
-            const approvedText = `👨‍⚕️ Doctor Approved: ${app.reviewedBy || "Dr. Ananya Sen"} has approved your medication request:\n\n"${app.finalText || app.proposedAdvice}"`;
-            
-            const docMsg: ChatMessage = {
-              id: `doc-${Date.now()}`,
-              sender: "assistant",
-              text: approvedText,
-              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-              source: "Doctor Validated Prescription",
-            };
-            setChatMessages((prev) => [...prev, docMsg]);
-            speakText(approvedText);
-          }
-        }
-      } catch (err) {
-        // quiet polling error
-      }
-    };
-
-    const interval = setInterval(checkApprovedPrescriptions, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
   // Voice assistant starts ONLY after the user selects a language!
   const handleLanguageSelect = (lang: string) => {
     setSelectedLanguage(lang);

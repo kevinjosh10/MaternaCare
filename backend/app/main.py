@@ -142,8 +142,8 @@ def chat_endpoint(req: ChatRequest):
         response_text = "EMERGENCY DETECTED. An ambulance has been dispatched to your location immediately."
     elif status == "PENDING_DOCTOR_APPROVAL":
         requires_approval = True
-        proposed_advice = res.get("proposedAdvice") or res.get("medical_advice_text", "Prescription requires review.")
-        response_text = res.get("patient_friendly_text") or "Since you are asking about medication, I have forwarded your request to your doctor for review. After I get approval from the doctor, I will suggest you the tablet."
+        proposed_advice = res.get("medical_advice_text", "Prescription requires review.")
+        response_text = "Your request involves medication. It has been forwarded to your doctor for review and approval."
     else:
         response_text = res.get("patient_friendly_text", "I'm here to help you.")
 

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logAuditTrail } from "@/lib/aws-cloudwatch";
-import { globalApprovalsQueue } from "@/app/api/doctor/approval/route";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -46,37 +45,19 @@ export async function POST(req: NextRequest) {
         const pyData = await pyResponse.json();
         const responseText = pyData.response || pyData.text || pyData.patient_friendly_text || pyData.translated_text;
 
-        const isMedApproval = Boolean(pyData.requiresApproval || pyData.status === "PENDING_DOCTOR_APPROVAL");
-
-        if (isMedApproval) {
-          const approvalId = `APP-${Math.floor(1000 + Math.random() * 9000)}`;
-          globalApprovalsQueue.unshift({
-            id: approvalId,
-            patientId,
-            patientName,
-            gestationalWeeks: body.gestationalWeeks || "32 Weeks",
-            query: message,
-            proposedAdvice: pyData.proposedAdvice || "Clinical review needed for medication request.",
-            category: "MEDICATION",
-            urgency: "HIGH",
-            status: "PENDING_APPROVAL",
-            createdAt: new Date().toISOString(),
-          });
-        }
-
         await logAuditTrail({
-          action: isMedApproval ? "MEDICATION_QUEUED_FOR_DOCTOR_APPROVAL" : "CONVERSATIONAL_CHAT_QUERY",
+          action: "CONVERSATIONAL_CHAT_QUERY",
           userId: "patient",
           patientId,
-          details: { query: message, source: "python_orchestrator", isMedApproval },
-          level: isMedApproval ? "WARN" : "INFO",
+          details: { query: message, source: "python_orchestrator" },
+          level: "INFO",
         });
 
         return NextResponse.json({
           success: true,
           response: responseText,
           status: pyData.status || "COMPLETED",
-          requiresApproval: isMedApproval,
+          requiresApproval: pyData.requiresApproval || pyData.status === "PENDING_DOCTOR_APPROVAL",
           proposedAdvice: pyData.proposedAdvice || null,
           source: "MaternaCare Layered Architecture",
           audio_base64: pyData.audio_base64 || null,
