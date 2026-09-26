@@ -62,11 +62,11 @@ export function ParentPortal({
   const [inputQuery, setInputQuery] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("en");
-  const [customBackendUrl, setCustomBackendUrl] = useState("");
+  
 
   useEffect(() => {
-    const saved = localStorage.getItem("materna_backend_url");
-    if (saved) setCustomBackendUrl(saved);
+    
+    
   }, []);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -119,7 +119,7 @@ export function ParentPortal({
           patientName: parentProfile.fullName,
           gestationalWeeks: `${parentProfile.gestationalWeeks} Weeks`,
           language: selectedLanguage,
-          customBackendUrl: customBackendUrl,
+          
         }),
       });
 
@@ -391,16 +391,6 @@ export function ParentPortal({
                 <option value="es">Español</option>
               </select>
             </div>
-            <input
-              type="text"
-              value={customBackendUrl}
-              onChange={(e) => {
-                setCustomBackendUrl(e.target.value);
-                localStorage.setItem("materna_backend_url", e.target.value);
-              }}
-              placeholder="Connection Code (optional)"
-              className="text-xs px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-pink-500 w-48"
-            />
           </div>
         </div>
 

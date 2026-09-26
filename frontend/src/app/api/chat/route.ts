@@ -15,13 +15,13 @@ export async function POST(req: NextRequest) {
     const patientName = body.patientName || "Priya Sharma";
     const language = body.language || body.source_lang || "en";
     const gestationalWeeks = body.gestationalWeeks || "32 Weeks";
-    const customBackendUrl = body.customBackendUrl || null;
+    
 
     if (!message) {
       return NextResponse.json({ error: "No message provided" }, { status: 400 });
     }
 
-    const pythonServerUrl = customBackendUrl || process.env.PYTHON_BACKEND_URL || process.env.COLAB_OCR_URL || null;
+    const pythonServerUrl = process.env.PYTHON_BACKEND_URL || process.env.COLAB_OCR_URL || null;
 
     // 1. Fetch Patient Context from RDS Database for Enhanced Health Memory
     let patientData: any = null;
