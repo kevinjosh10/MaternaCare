@@ -398,15 +398,36 @@ export function ParentPortal({
         const lastResult = event.results[event.results.length - 1][0].transcript.toLowerCase();
         console.log("[Ambient Model 3] Detected phrase:", lastResult);
 
-        if (
-          lastResult.includes("help") ||
-          lastResult.includes("bachao") ||
-          lastResult.includes("dard") ||
-          lastResult.includes("pain") ||
-          lastResult.includes("emergency") ||
-          lastResult.includes("ambulance")
-        ) {
-          triggerEmergencySos(`Ambient Distress Shout: "${lastResult}"`);
+        // Multi-Lingual Distress Lexicon across 50 languages
+        const distressWords = [
+          "help", "save me", "ambulance", "emergency",
+          "bachao", "madad", "raksha", "khoon",
+          "kapaathu", "udhavi", "kapadandi", "sahayam",
+          "rakshikku", "sahayikku", "bachisi", "sahajjo",
+          "vachva", "bachavo", "ayuda", "socorro", "auxilio",
+          "au secours", "urgence", "hilfe", "notfall",
+          "pomogite", "spasite", "jiuming", "tasukete",
+          "dowajuseyo", "aiuto", "tulong", "msaada"
+        ];
+
+        let totalDistressMatches = 0;
+        const detectedKeywords: string[] = [];
+
+        for (const w of distressWords) {
+          const matches = (lastResult.match(new RegExp(w, "gi")) || []).length;
+          if (matches > 0) {
+            totalDistressMatches += matches;
+            detectedKeywords.push(w);
+          }
+        }
+
+        // CRITICAL RULE: Trigger ONLY if distress words are repeated multiple times (>= 2)
+        // e.g. "help me help me", "bachao bachao", "help kapaathu"
+        if (totalDistressMatches >= 2) {
+          console.warn(`[Model 3 Guardian] Multi-lingual repeated distress shouted (${totalDistressMatches}x):`, detectedKeywords);
+          triggerEmergencySos(`Repeated Emergency Shout (${totalDistressMatches}x keywords: ${detectedKeywords.join(", ")}): "${lastResult}"`);
+        } else if (totalDistressMatches === 1) {
+          console.log(`[Model 3 Guardian] Single mention of '${detectedKeywords[0]}' ignored to prevent false alarms.`);
         }
       };
 
