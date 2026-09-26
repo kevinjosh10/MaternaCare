@@ -132,7 +132,7 @@ export function ParentPortal({
   ]);
   const [inputQuery, setInputQuery] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState("en");
+  const [selectedLanguage, setSelectedLanguage] = useState("");
   
 
   useEffect(() => {
@@ -141,10 +141,10 @@ export function ParentPortal({
   }, []);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isAlwaysOnCompanion, setIsAlwaysOnCompanion] = useState(true);
+  const [isAlwaysOnCompanion, setIsAlwaysOnCompanion] = useState(false);
 
   // References to keep event callbacks perfectly in sync without stale closures
-  const alwaysOnRef = useRef(true);
+  const alwaysOnRef = useRef(false);
   const isSpeakingRef = useRef(false);
   const isChatLoadingRef = useRef(false);
   const recognitionInstanceRef = useRef<any>(null);
@@ -168,24 +168,32 @@ export function ParentPortal({
   const [isSosTriggering, setIsSosTriggering] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-activate All-Time Companion on entry
+  // Cleanup on unmount
   useEffect(() => {
-    let timer: any;
-    if (typeof window !== "undefined") {
-      // Start listening automatically 800ms after entering the account!
-      timer = setTimeout(() => {
-        startContinuousListening();
-      }, 800);
-    }
     return () => {
-      clearTimeout(timer);
       stopContinuousListening();
     };
-  }, [selectedLanguage]);
+  }, []);
 
+  // Voice assistant starts ONLY after the user selects a language!
+  const handleLanguageSelect = (lang: string) => {
+    setSelectedLanguage(lang);
+    if (!lang) return;
+    setIsAlwaysOnCompanion(true);
+    alwaysOnRef.current = true;
+    stopContinuousListening();
+    setTimeout(() => {
+      startContinuousListening(lang);
+    }, 250);
+  };
+
+  // Scroll ONLY the inner chat box without scrolling or jumping the outer window/page
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [chatMessages]);
 
   // Model 4: Send Query to AI Medical Brain
@@ -255,7 +263,8 @@ export function ParentPortal({
   };
 
   // Continuous Companion Voice Engine
-  const startContinuousListening = () => {
+  const startContinuousListening = (overrideLang?: string) => {
+    const activeLang = overrideLang || selectedLanguage || "en";
     if (typeof window === "undefined") return;
     if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
       return;
@@ -277,7 +286,7 @@ export function ParentPortal({
 
       recognition.continuous = false; // Capture continuous utterances naturally
       recognition.interimResults = true;
-      recognition.lang = LOCALE_MAP[selectedLanguage] || selectedLanguage;
+      recognition.lang = LOCALE_MAP[activeLang] || activeLang;
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -652,9 +661,10 @@ export function ParentPortal({
               <label className="text-xs font-semibold text-slate-600">Language:</label>
                               <select
                   value={selectedLanguage}
-                  onChange={(e) => setSelectedLanguage(e.target.value)}
-                  className="text-xs px-3 py-1.5 rounded-xl bg-slate-50 border border-pink-200 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-sm"
+                  onChange={(e) => handleLanguageSelect(e.target.value)}
+                  className="text-xs px-3 py-1.5 rounded-xl bg-slate-50 border-2 border-pink-300 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-sm animate-pulse"
                 >
+                  <option value="">👇 Select Language to Start Voice AI...</option>
                   <optgroup label="⭐ Top 10 Supported Languages">
                     {TOP_10_LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
                   </optgroup>
@@ -707,6 +717,10 @@ export function ParentPortal({
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
                 🟢 All-Time Companion Listening (Hands-Free)
+              </span>
+            ) : !selectedLanguage ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-pink-100 text-pink-700 border border-pink-300 animate-bounce">
+                👉 Select a language above to start Voice Assistant
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
@@ -767,7 +781,7 @@ export function ParentPortal({
         </div>
 
         {/* Chat History Box */}
-        <div className="h-80 overflow-y-auto rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-3">
+        <div ref={chatContainerRef} className="h-80 overflow-y-auto rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-3">
           {chatMessages.map((msg) => (
             <div
               key={msg.id}
