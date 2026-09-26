@@ -29,6 +29,22 @@ interface ChatMessage {
   source?: string;
 }
 
+const LANGUAGES = [
+  { code: 'en', name: 'English' }, { code: 'hi', name: 'Hindi' }, { code: 'ta', name: 'Tamil' }, { code: 'te', name: 'Telugu' },
+  { code: 'bn', name: 'Bengali' }, { code: 'ml', name: 'Malayalam' }, { code: 'mr', name: 'Marathi' }, { code: 'gu', name: 'Gujarati' },
+  { code: 'kn', name: 'Kannada' }, { code: 'pa', name: 'Punjabi' }, { code: 'ur', name: 'Urdu' }, { code: 'es', name: 'Spanish' },
+  { code: 'fr', name: 'French' }, { code: 'de', name: 'German' }, { code: 'zh', name: 'Chinese' }, { code: 'ar', name: 'Arabic' },
+  { code: 'ru', name: 'Russian' }, { code: 'ja', name: 'Japanese' }, { code: 'pt', name: 'Portuguese' }, { code: 'it', name: 'Italian' },
+  { code: 'ko', name: 'Korean' }, { code: 'tr', name: 'Turkish' }, { code: 'nl', name: 'Dutch' }, { code: 'vi', name: 'Vietnamese' },
+  { code: 'pl', name: 'Polish' }, { code: 'uk', name: 'Ukrainian' }, { code: 'th', name: 'Thai' }, { code: 'id', name: 'Indonesian' },
+  { code: 'ms', name: 'Malay' }, { code: 'tl', name: 'Tagalog' }, { code: 'fa', name: 'Persian' }, { code: 'he', name: 'Hebrew' },
+  { code: 'sv', name: 'Swedish' }, { code: 'no', name: 'Norwegian' }, { code: 'da', name: 'Danish' }, { code: 'fi', name: 'Finnish' },
+  { code: 'cs', name: 'Czech' }, { code: 'el', name: 'Greek' }, { code: 'hu', name: 'Hungarian' }, { code: 'ro', name: 'Romanian' },
+  { code: 'sk', name: 'Slovak' }, { code: 'bg', name: 'Bulgarian' }, { code: 'hr', name: 'Croatian' }, { code: 'sr', name: 'Serbian' },
+  { code: 'sl', name: 'Slovenian' }, { code: 'lt', name: 'Lithuanian' }, { code: 'lv', name: 'Latvian' }, { code: 'et', name: 'Estonian' },
+  { code: 'sw', name: 'Swahili' }, { code: 'zu', name: 'Zulu' }
+];
+
 export function ParentPortal({
   parentProfile,
   parentDocuments,
@@ -168,7 +184,7 @@ export function ParentPortal({
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = selectedLanguage === "hi" ? "hi-IN" : selectedLanguage === "ta" ? "ta-IN" : "en-IN";
+      recognition.lang = selectedLanguage;
 
       recognition.onstart = () => setIsListening(true);
       recognition.onresult = (event: any) => {
@@ -212,7 +228,7 @@ export function ParentPortal({
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.95;
     utterance.pitch = 1.0;
-    utterance.lang = selectedLanguage === "hi" ? "hi-IN" : selectedLanguage === "ta" ? "ta-IN" : "en-IN";
+    utterance.lang = selectedLanguage;
     window.speechSynthesis.speak(utterance);
   };
 
@@ -388,17 +404,13 @@ export function ParentPortal({
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-2">
               <label className="text-xs font-semibold text-slate-600">Language:</label>
-              <select
-                value={selectedLanguage}
-                onChange={(e) => setSelectedLanguage(e.target.value)}
-                className="text-xs px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-pink-500"
-              >
-                <option value="en">English</option>
-                <option value="hi">हिंदी (Hindi)</option>
-                <option value="ta">தமிழ் (Tamil)</option>
-                <option value="te">తెలుగు (Telugu)</option>
-                <option value="es">Español</option>
-              </select>
+                              <select
+                  value={selectedLanguage}
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  className="text-xs px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-pink-500"
+                >
+                  {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
+                </select>
             </div>
           </div>
         </div>
