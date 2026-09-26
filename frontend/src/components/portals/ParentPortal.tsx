@@ -46,7 +46,7 @@ export function ParentPortal({
   onBackToHome,
 }: ParentPortalProps) {
   const [expandedDocId, setExpandedDocId] = useState<string | null>(null);
-  const [colabUrl, setColabUrl] = useState<string>("https://unearned-overheat-amuser.ngrok-free.dev");
+  const [colabUrl, setColabUrl] = useState<string>("https://untie-send-transpose.ngrok-free.dev");
   const [showColabInput, setShowColabInput] = useState(false);
 
   // Model 4 Conversational Brain State
@@ -84,7 +84,7 @@ export function ParentPortal({
       if (stored) {
         setColabUrl(stored);
       } else {
-        localStorage.setItem("maternacare_colab_ocr_url", "https://unearned-overheat-amuser.ngrok-free.dev");
+        localStorage.setItem("maternacare_colab_ocr_url", "https://untie-send-transpose.ngrok-free.dev");
       }
     }
   }, []);
