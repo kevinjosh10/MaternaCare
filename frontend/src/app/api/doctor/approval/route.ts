@@ -21,18 +21,6 @@ export interface PendingApproval {
 
 export const globalApprovalsQueue: PendingApproval[] = [
   {
-    id: "APP-1001",
-    patientId: "priya.sharma@example.com",
-    patientName: "Priya Sharma",
-    gestationalWeeks: "32 Weeks",
-    query: "I have a mild headache and swelling in my feet, what should I take?",
-    proposedAdvice: "Rest in left-lateral position, increase oral hydration, and check blood pressure within 15 minutes. Avoid OTC NSAIDs/Aspirin without prescription.",
-    category: "CLINICAL_SYMPTOM",
-    urgency: "HIGH",
-    status: "PENDING_APPROVAL",
-    createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-  },
-  {
     id: "APP-1002",
     patientId: "priya.sharma@example.com",
     patientName: "Priya Sharma",

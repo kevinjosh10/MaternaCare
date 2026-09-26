@@ -57,22 +57,13 @@ export function ClinicianPortal({
   // Live Emergency SOS Alerts State
   const [emergencyAlerts, setEmergencyAlerts] = useState<any[]>([]);
 
-  // Fetch pending AI approvals & SOS alerts
+  // Fetch pending AI prescription approvals ONLY (Emergency alerts go directly to Ambulance Driver)
   const fetchApprovalsAndAlerts = async () => {
     try {
-      const [appRes, emgRes] = await Promise.all([
-        fetch("/api/doctor/approval"),
-        fetch("/api/emergency"),
-      ]);
-
+      const appRes = await fetch("/api/doctor/approval");
       if (appRes.ok) {
         const appData = await appRes.json();
         if (appData.approvals) setPendingApprovals(appData.approvals);
-      }
-
-      if (emgRes.ok) {
-        const emgData = await emgRes.json();
-        if (emgData.alerts) setEmergencyAlerts(emgData.alerts);
       }
     } catch (err) {
       console.warn("Polling note:", err);
@@ -145,29 +136,7 @@ export function ClinicianPortal({
         </div>
       </div>
 
-      {/* Emergency SOS Alerts Notification Bar */}
-      {emergencyAlerts.length > 0 && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-red-600 text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-pulse">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🚨</span>
-            <div>
-              <div className="text-xs font-black uppercase tracking-wider">
-                Live Ambient Distress Trigger Received 
-              </div>
-              <p className="text-xs text-red-100 mt-0.5">
-                <strong>{emergencyAlerts[0].patientName}:</strong> {emergencyAlerts[0].keyword} &bull; Location: {emergencyAlerts[0].location}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onDispatchAmbulance}
-            className="px-4 py-2 rounded-xl bg-white text-red-700 font-bold text-xs shadow-md hover:bg-red-50 transition-all cursor-pointer whitespace-nowrap"
-          >
-            Dispatch Ambulance →
-          </button>
-        </div>
-      )}
+{/* Emergency alerts are routed directly to the Ambulance Driver Panel */}
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
