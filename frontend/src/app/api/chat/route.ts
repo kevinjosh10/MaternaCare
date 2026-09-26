@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     const patientId = body.patientId || body.patient_id || "priya.sharma@example.com";
     const language = body.language || body.source_lang || "en";
 
-    const pythonServerUrl = process.env.PYTHON_BACKEND_URL || "http://localhost:8000";
+    const pythonServerUrl = process.env.PYTHON_BACKEND_URL || "https://untie-send-transpose.ngrok-free.dev";
 
     // 1. Try forwarding to friend's Python Backend LLM Microservice
     try {
@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
         },
         body: JSON.stringify({
           message,
