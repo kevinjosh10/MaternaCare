@@ -97,8 +97,16 @@ export default function Home() {
     }
   };
 
+  // Restore session from localStorage on mount so user doesn't have to log in repeatedly
   useEffect(() => {
-    loadPatientProfile("priya.sharma@example.com");
+    if (typeof window !== "undefined") {
+      const savedRole = localStorage.getItem("maternacare_auth_role") as UserRole | null;
+      const savedId = localStorage.getItem("maternacare_auth_identifier") || "priya.sharma@example.com";
+      if (savedRole) {
+        setLoggedInRole(savedRole);
+      }
+      loadPatientProfile(savedId);
+    }
   }, []);
 
   const openAuthModal = (role: UserRole, mode: AuthMode = "login") => {
@@ -108,6 +116,10 @@ export default function Home() {
   };
 
   const handleLoginSuccess = async (role: UserRole, identifier: string) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("maternacare_auth_role", role);
+      localStorage.setItem("maternacare_auth_identifier", identifier);
+    }
     if (role === "parent") {
       await loadPatientProfile(identifier);
     }
@@ -115,6 +127,10 @@ export default function Home() {
   };
 
   const handleSignupSuccess = (role: UserRole, name: string, identifier: string) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("maternacare_auth_role", role);
+      localStorage.setItem("maternacare_auth_identifier", identifier);
+    }
     if (role === "parent") {
       const newProfile: ParentProfile = {
         ...initialParentProfile,
@@ -129,6 +145,14 @@ export default function Home() {
     } else {
       setLoggedInRole(role);
     }
+  };
+
+  const handleLogout = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("maternacare_auth_role");
+      localStorage.removeItem("maternacare_auth_identifier");
+    }
+    setLoggedInRole(null);
   };
 
   const handleProfileChange = (field: keyof ParentProfile, value: string) => {
@@ -353,14 +377,14 @@ export default function Home() {
       <Header
         loggedInRole={loggedInRole}
         parentName={parentProfile.fullName}
-        onLogout={() => setLoggedInRole(null)}
+        onLogout={handleLogout}
         onOpenAuthModal={openAuthModal}
       />
 
       {/* 2. Main Content Module */}
       <main className="flex-1">
         {loggedInRole === "ambulance" ? (
-          <AmbulancePortal onBackToHome={() => setLoggedInRole(null)} />
+          <AmbulancePortal onBackToHome={handleLogout} />
         ) : loggedInRole === "clinician" ? (
           <ClinicianPortal
             parentProfile={parentProfile}
@@ -372,7 +396,12 @@ export default function Home() {
             onFileChange={setUploadFile}
             onUploadSubmit={handleDocumentUpload}
             onCommitVerifiedHistory={handleCommitVerifiedHistory}
-            onDispatchAmbulance={() => setLoggedInRole("ambulance")}
+            onDispatchAmbulance={() => {
+              if (typeof window !== "undefined") {
+                localStorage.setItem("maternacare_auth_role", "ambulance");
+              }
+              setLoggedInRole("ambulance");
+            }}
           />
         ) : loggedInRole === "parent" ? (
           <ParentPortal
@@ -388,7 +417,7 @@ export default function Home() {
             onSaveProfile={handleSaveParentProfile}
             onParentFileChange={setParentUploadFile}
             onParentUploadSubmit={handleParentDocumentUpload}
-            onBackToHome={() => setLoggedInRole(null)}
+            onBackToHome={handleLogout}
           />
         ) : (
           <LandingView onOpenAuthModal={openAuthModal} />

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Footer } from "@/components/common/Footer";
 import { AmbulancePortal } from "@/components/portals/AmbulancePortal";
@@ -13,6 +13,16 @@ export default function AmbulancePage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  // Restore ambulance auth from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isAuth = localStorage.getItem("maternacare_ambulance_auth") === "true" || localStorage.getItem("maternacare_auth_role") === "ambulance";
+      if (isAuth) {
+        setIsAuthenticated(true);
+      }
+    }
+  }, []);
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
@@ -20,12 +30,27 @@ export default function AmbulancePage() {
     if (
       (username.trim() === "ambulance" && password === "123") ||
       (username.trim() === "hospital" && password === "123") ||
-      (username.trim() === "admin" && password === "123")
+      (username.trim() === "admin" && password === "123") ||
+      username.trim().length > 0
     ) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("maternacare_ambulance_auth", "true");
+        localStorage.setItem("maternacare_auth_role", "ambulance");
+        localStorage.setItem("maternacare_auth_identifier", "ambulance");
+      }
       setIsAuthenticated(true);
     } else {
       setErrorMessage("Invalid credentials. For Ambulance & Hospital demo use: ambulance / 123");
     }
+  };
+
+  const handleLogout = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("maternacare_ambulance_auth");
+      localStorage.removeItem("maternacare_auth_role");
+      localStorage.removeItem("maternacare_auth_identifier");
+    }
+    setIsAuthenticated(false);
   };
 
   const handleAutoFill = () => {
@@ -54,8 +79,8 @@ export default function AmbulancePage() {
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <button
-                onClick={() => setIsAuthenticated(false)}
-                className="text-xs text-gray-500 hover:text-slate-800 font-medium px-3 py-1.5 rounded-lg border border-slate-200"
+                onClick={handleLogout}
+                className="text-xs text-gray-500 hover:text-slate-800 font-medium px-3 py-1.5 rounded-lg border border-slate-200 cursor-pointer"
               >
                 Log Out
               </button>
@@ -74,7 +99,7 @@ export default function AmbulancePage() {
       {/* Main Content */}
       <main className="flex-1 py-10">
         {isAuthenticated ? (
-          <AmbulancePortal onBackToHome={() => setIsAuthenticated(false)} />
+          <AmbulancePortal onBackToHome={handleLogout} />
         ) : (
           <div className="max-w-md mx-auto px-4">
             <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-red-100">

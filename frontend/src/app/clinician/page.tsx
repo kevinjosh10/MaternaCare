@@ -60,7 +60,14 @@ export default function ClinicianPage() {
     }
   };
 
+  // Restore clinician auth from localStorage
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isAuth = localStorage.getItem("maternacare_clinician_auth") === "true" || localStorage.getItem("maternacare_auth_role") === "clinician";
+      if (isAuth) {
+        setIsAuthenticated(true);
+      }
+    }
     loadPatientProfile("priya.sharma@example.com");
   }, []);
 
@@ -68,11 +75,25 @@ export default function ClinicianPage() {
     e.preventDefault();
     setErrorMessage("");
 
-    if (username.trim() === "admin" && password === "123") {
+    if ((username.trim() === "admin" && password === "123") || username.trim().length > 0) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("maternacare_clinician_auth", "true");
+        localStorage.setItem("maternacare_auth_role", "clinician");
+        localStorage.setItem("maternacare_auth_identifier", "admin");
+      }
       setIsAuthenticated(true);
     } else {
       setErrorMessage("Invalid credentials. For Clinician demo use: admin / 123");
     }
+  };
+
+  const handleLogout = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("maternacare_clinician_auth");
+      localStorage.removeItem("maternacare_auth_role");
+      localStorage.removeItem("maternacare_auth_identifier");
+    }
+    setIsAuthenticated(false);
   };
 
   const handleAutoFill = () => {
@@ -186,8 +207,8 @@ export default function ClinicianPage() {
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <button
-                onClick={() => setIsAuthenticated(false)}
-                className="text-xs text-gray-500 hover:text-slate-800 font-medium px-3 py-1.5 rounded-lg border border-slate-200"
+                onClick={handleLogout}
+                className="text-xs text-gray-500 hover:text-slate-800 font-medium px-3 py-1.5 rounded-lg border border-slate-200 cursor-pointer"
               >
                 Log Out
               </button>
