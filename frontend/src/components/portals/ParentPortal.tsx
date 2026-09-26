@@ -314,12 +314,12 @@ export function ParentPortal({
         </div>
       </div>
 
-      {/* Model 3: Ambient Emergency Guardian Banner */}
+      {/* Ambient Emergency Guardian Banner */}
       <div className="bg-gradient-to-r from-red-950 via-slate-900 to-red-950 text-white rounded-3xl p-6 border border-red-800/60 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-red-600/30 text-red-300 text-xs font-bold border border-red-500/40">
             <span className={`w-2 h-2 rounded-full ${isAmbientListening ? "bg-green-400 animate-ping" : "bg-red-500"}`}></span>
-            Model 3: Ambient Emergency Guardian
+            Ambient Emergency Guardian
           </div>
           <h2 className="text-lg font-bold flex items-center gap-2">
             <span>🚨 Hands-Free Distress &amp; Emergency SOS</span>
@@ -365,7 +365,7 @@ export function ParentPortal({
           <div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-pink-50 text-pink-700 text-[11px] font-bold border border-pink-200 mb-1">
               <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></span>
-              Model 4 &bull; Clinical AI Brain + Human-In-The-Loop Approval
+              Clinical AI Assistant &bull; Doctor Verified
             </div>
             <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
               <span>💬</span>
@@ -398,7 +398,7 @@ export function ParentPortal({
                 setCustomBackendUrl(e.target.value);
                 localStorage.setItem("materna_backend_url", e.target.value);
               }}
-              placeholder="ngrok URL (optional)"
+              placeholder="Connection Code (optional)"
               className="text-xs px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-pink-500 w-48"
             />
           </div>
@@ -496,7 +496,7 @@ export function ParentPortal({
                 ? "bg-red-500 text-white border-red-600 animate-pulse"
                 : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
             }`}
-            title="Speak Question (Model 2 Voice STT)"
+            title="Speak Question "
           >
             <span className="text-base">🎙️</span>
           </button>
@@ -517,7 +517,7 @@ export function ParentPortal({
           <div>
             <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
               <span>📄</span>
-              <span>Upload Medical Reports &amp; Scans (Model 5 OCR)</span>
+              <span>Upload Medical Reports &amp; Scans </span>
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
               Upload multi-page lab reports, ultrasound scans, or antenatal cards to extract all text verbatim and generate a single unified Markdown (.md) document.
@@ -532,7 +532,7 @@ export function ParentPortal({
         <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
-            <span className="font-bold text-slate-800">Model 5 AI OCR Engine:</span>
+            <span className="font-bold text-slate-800">Document Processor:</span>
             <span className="text-slate-600 font-mono text-[11px] truncate max-w-xs sm:max-w-md">
               {colabUrl ? colabUrl : "Integrated Mozilla PDF.js & GPU Full-Text Optical Engine"}
             </span>
@@ -549,7 +549,7 @@ export function ParentPortal({
         {showColabInput && (
           <div className="p-4 rounded-2xl bg-pink-50/60 border border-pink-200 space-y-2 text-xs">
             <label className="block font-semibold text-slate-800">
-              Connected Google Colab / Cloudflare OCR API Endpoint:
+              Backend Connection Endpoint:
             </label>
             <div className="flex flex-col sm:flex-row gap-2">
               <input
@@ -570,7 +570,7 @@ export function ParentPortal({
                   if (typeof window !== "undefined") {
                     localStorage.setItem("maternacare_colab_ocr_url", colabUrl.trim());
                   }
-                  alert("Connected Model 5 Colab URL saved successfully!");
+                  alert("Connection saved successfully!");
                   setShowColabInput(false);
                 }}
                 className="px-4 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold transition-all shadow-sm cursor-pointer whitespace-nowrap"
@@ -638,7 +638,7 @@ export function ParentPortal({
               <div>
                 <span className="font-extrabold flex items-center gap-2 text-base text-green-400">
                   <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-ping"></span>
-                  Model 5 Full-Text Extraction Complete (100% Captured)
+                  Full-Text Extraction Complete (100% Captured)
                 </span>
                 <p className="text-slate-400 text-xs mt-0.5">
                   Extracted from <code className="text-pink-300 font-bold">{parentUploadResult.fileName}</code> &bull; All pages preserved verbatim.
@@ -665,7 +665,7 @@ export function ParentPortal({
                         const link = document.createElement("a");
                         link.href = url;
                         const baseName = (parentUploadResult.fileName || "Medical_Report.pdf").replace(/\.[^/.]+$/, "");
-                        link.download = `${baseName}_OCR_FULL_TEXT.md`;
+                        link.download = `${baseName}_Full_Text.md`;
                         document.body.appendChild(link);
                         link.click();
                         document.body.removeChild(link);

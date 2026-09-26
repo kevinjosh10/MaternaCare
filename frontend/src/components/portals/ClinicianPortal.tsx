@@ -130,7 +130,7 @@ export function ClinicianPortal({
 
   return (
     <section className="py-10 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-8">
-      {/* Top Bar with Live AWS Sync Status */}
+      {/* Top Bar with Live Sync Status */}
       <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 text-xs text-pink-300 font-semibold mb-3 border border-slate-700">
@@ -154,13 +154,13 @@ export function ClinicianPortal({
             <span className="text-green-400">●</span> RDS Health Vault: Active
           </div>
           <div className="flex items-center gap-1.5 text-slate-300">
-            <span className="text-green-400">●</span> Model 4 Brain: Connected
+            <span className="text-green-400">●</span> AI Assistant: Connected
           </div>
           <div className="flex items-center gap-1.5 text-slate-300">
             <span className="text-green-400">●</span> CloudWatch Audit: Synced
           </div>
           <div className="flex items-center gap-1.5 text-slate-300">
-            <span className="text-green-400">●</span> Model 5 OCR: Ready
+            <span className="text-green-400">●</span> Doc Scanner: Ready
           </div>
         </div>
       </div>
@@ -172,7 +172,7 @@ export function ClinicianPortal({
             <span className="text-2xl">🚨</span>
             <div>
               <div className="text-xs font-black uppercase tracking-wider">
-                Live Ambient Distress Trigger Received (Model 3 Shout Detector)
+                Live Ambient Distress Trigger Received 
               </div>
               <p className="text-xs text-red-100 mt-0.5">
                 <strong>{emergencyAlerts[0].patientName}:</strong> {emergencyAlerts[0].keyword} &bull; Location: {emergencyAlerts[0].location}
@@ -363,7 +363,7 @@ export function ClinicianPortal({
               <div>
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200 mb-1">
                   <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                  Model 4 Clinical Review Gateway
+                  AI Clinical Review Gateway
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">
                   Human-In-The-Loop (HITL) Medical Advice Queue
@@ -421,7 +421,7 @@ export function ClinicianPortal({
                     </div>
 
                     <div className="p-3 rounded-xl bg-white border border-slate-200 space-y-1">
-                      <span className="font-semibold text-blue-700 text-[10px] uppercase">Proposed Medical Advice (Model 4):</span>
+                      <span className="font-semibold text-blue-700 text-[10px] uppercase">Proposed Medical Advice :</span>
                       {editingApprovalId === item.id ? (
                         <div className="space-y-2">
                           <textarea
@@ -496,7 +496,7 @@ export function ClinicianPortal({
               </h3>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-green-100 text-green-800 text-[10px] font-bold">
                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                Model 5 Active
+                Scanner Active
               </span>
             </div>
             <p className="text-xs text-gray-500">
