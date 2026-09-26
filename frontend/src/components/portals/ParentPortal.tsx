@@ -80,12 +80,7 @@ export function ParentPortal({
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const stored = null;
-      if (stored) {
-        setColabUrl(stored);
-      } else {
-        
-      }
+      // Empty
     }
   }, []);
 
