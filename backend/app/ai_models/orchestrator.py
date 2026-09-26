@@ -107,19 +107,13 @@ class VoiceToVoiceMedicalOrchestrator:
             "syndromes_detected": clinical_analysis.detected_syndromes
         })
 
-        # Step 3: HITL Gate & Speech Synthesis (Text -> Voice Out)
-        step3_start = time.time()
-        audio_response_b64 = None
-        
-        # We only generate audio immediately if NO DOCTOR APPROVAL IS PENDING
+        # Step 3: HITL Gate Check
         if clinical_analysis.hitl_approval.status == "PENDING_APPROVAL":
-            # Halting TTS generation until doctor approves via dashboard
             trace["steps"].append({
                 "step": "HITL_HALT",
                 "reason": clinical_analysis.hitl_approval.trigger_reasons
             })
             
-            # Store in the microservice DB so the doctor dashboard can retrieve it
             from app.medical_brain.microservice import PENDING_APPROVALS_DB
             PENDING_APPROVALS_DB[clinical_analysis.analysis_id] = clinical_analysis
             
@@ -133,25 +127,7 @@ class VoiceToVoiceMedicalOrchestrator:
                 "model_pipeline_trace": trace
             }
 
-        if generate_audio:
-            # Safe to speak
-            # Translation to regional language (simulated in TTS engine or Translation engine)
-            # We assume TTS engine handles synthesis in the correct language
-            spoken_text = clinical_analysis.patient_friendly_english
-            tts_res = self.tts.synthesize(
-                text=spoken_text,
-                language=detected_lang,
-                voice_gender="female"
-            )
-            audio_response_b64 = tts_res["audio_base64"]
-            trace["steps"].append({
-                "step": "TTS_VOICE_SYNTHESIS",
-                "elapsed_ms": round((time.time() - step3_start) * 1000, 2),
-                "audio_duration_seconds": tts_res["duration_seconds"],
-                "sample_rate": tts_res["sample_rate"]
-            })
-
-        # Step 4: Multi-Lingual Translation Layer (Model 1)
+        # Step 4: Multi-Lingual Translation Layer (Model 1) FIRST!
         final_patient_text = clinical_analysis.patient_friendly_english
         target_lang = language_hint or detected_lang or "en"
         
@@ -172,6 +148,24 @@ class VoiceToVoiceMedicalOrchestrator:
             except Exception as e:
                 logger.error(f"Translation to {target_lang} failed: {e}")
 
+        # Step 5: High-Fidelity TTS Voice Synthesis (Model 2) in the Target Language!
+        step5_start = time.time()
+        audio_response_b64 = None
+        if generate_audio:
+            tts_res = self.tts.synthesize(
+                text=final_patient_text,
+                language=target_lang,
+                voice_gender="female"
+            )
+            audio_response_b64 = tts_res["audio_base64"]
+            trace["steps"].append({
+                "step": "TTS_VOICE_SYNTHESIS",
+                "elapsed_ms": round((time.time() - step5_start) * 1000, 2),
+                "audio_duration_seconds": tts_res["duration_seconds"],
+                "sample_rate": tts_res["sample_rate"],
+                "language": target_lang
+            })
+
         trace["total_pipeline_ms"] = round((time.time() - pipeline_start) * 1000, 2)
 
         return {
@@ -182,7 +176,7 @@ class VoiceToVoiceMedicalOrchestrator:
             "patient_friendly_text": final_patient_text,
             "detected_syndromes": clinical_analysis.detected_syndromes,
             "audio_response_base64": audio_response_b64,
-            "audio_format": "audio/wav" if audio_response_b64 else None,
+            "audio_format": "audio/mp3" if audio_response_b64 else None,
             "model_pipeline_trace": trace
         }
 

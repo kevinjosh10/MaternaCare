@@ -27,6 +27,7 @@ interface ChatMessage {
   requiresApproval?: boolean;
   proposedAdvice?: string | null;
   source?: string;
+  audio_base64?: string | null;
 }
 
 
@@ -158,11 +159,14 @@ export function ParentPortal({
           proposedAdvice: data.proposedAdvice,
           source: data.source || "MaternaCare Model 4 Brain",
         };
-        setChatMessages((prev) => [...prev, assistantMsg]);
-
-        if ("speechSynthesis" in window) {
+        if (data.audio_base64) {
+          assistantMsg.audio_base64 = data.audio_base64;
+          playAudioBase64(data.audio_base64);
+        } else if ("speechSynthesis" in window) {
           speakText(assistantMsg.text);
         }
+
+        setChatMessages((prev) => [...prev, assistantMsg]);
       }
     } catch (err) {
       console.error("Chat error:", err);
@@ -278,6 +282,27 @@ export function ParentPortal({
       }, 60);
     } catch (e) {
       console.error("speakText error:", e);
+      setIsSpeaking(false);
+    }
+  };
+
+
+  // Model 2: Server-Side High Fidelity Neural Audio Player
+  const playAudioBase64 = (b64: string) => {
+    try {
+      if (typeof window !== "undefined") {
+        window.speechSynthesis?.cancel(); // Cancel any robotic browser voice
+        const audio = new Audio("data:audio/mp3;base64," + b64);
+        setIsSpeaking(true);
+        audio.onended = () => setIsSpeaking(false);
+        audio.onerror = () => setIsSpeaking(false);
+        audio.play().catch((err) => {
+          console.warn("Browser autoplay note (click speak button to play):", err);
+          setIsSpeaking(false);
+        });
+      }
+    } catch (e) {
+      console.error("Audio playback error:", e);
       setIsSpeaking(false);
     }
   };

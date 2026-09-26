@@ -60,6 +60,8 @@ export async function POST(req: NextRequest) {
           requiresApproval: pyData.requiresApproval || pyData.status === "PENDING_DOCTOR_APPROVAL",
           proposedAdvice: pyData.proposedAdvice || null,
           source: "MaternaCare Layered Architecture",
+          audio_base64: pyData.audio_base64 || null,
+          audio_format: pyData.audio_format || "audio/mp3",
         });
       } else {
         const errText = await pyResponse.text();

@@ -151,5 +151,7 @@ def chat_endpoint(req: ChatRequest):
         "status": status,
         "requiresApproval": requires_approval,
         "proposedAdvice": proposed_advice,
-        "source": "maternacare_core_brain"
+        "source": "maternacare_core_brain",
+        "audio_base64": res.get("audio_response_base64"),
+        "audio_format": res.get("audio_format", "audio/mp3")
     }
