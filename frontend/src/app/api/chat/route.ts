@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           success: true,
           response: responseText,
+          detected_language: pyData.detected_language || pyData.detectedLanguage || language || "en",
           status: pyData.status || "COMPLETED",
           requiresApproval: pyData.requiresApproval || pyData.status === "PENDING_DOCTOR_APPROVAL",
           proposedAdvice: pyData.proposedAdvice || null,

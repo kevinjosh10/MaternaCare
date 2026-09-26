@@ -136,7 +136,7 @@ def chat_endpoint(req: ChatRequest):
     proposed_advice = None
     response_text = ""
     
-    target_lang = (req.language or "en").lower().split("-")[0]
+    detected_lang = res.get("detected_language") or (req.language or "en").lower().split("-")[0]
 
     if status == "EMERGENCY_DISPATCHED":
         response_text = "EMERGENCY DETECTED. An ambulance has been dispatched to your location immediately."
@@ -153,7 +153,7 @@ def chat_endpoint(req: ChatRequest):
     if not audio_b64 and response_text:
         try:
             # If target language is non-English, translate response_text first
-            if target_lang not in ["en", "english"]:
+            if detected_lang not in ["en", "english"]:
                 import os, dotenv
                 dotenv.load_dotenv()
                 groq_k = os.environ.get("GROQ_API_KEY", "")
@@ -164,7 +164,7 @@ def chat_endpoint(req: ChatRequest):
                         model="qwen/qwen3.8-27b",
                         messages=[{
                             "role": "system",
-                            "content": f"Translate into language code '{target_lang}'. Return ONLY native script direct translation."
+                            "content": f"Translate into language code '{detected_lang}'. Return ONLY native script direct translation."
                         }, {"role": "user", "content": response_text}],
                         temperature=0.2,
                         max_tokens=150
@@ -174,7 +174,7 @@ def chat_endpoint(req: ChatRequest):
                         response_text = trans
 
             from app.ai_models.tts_model import tts_engine
-            synth = tts_engine.synthesize(text=response_text, language=target_lang)
+            synth = tts_engine.synthesize(text=response_text, language=detected_lang)
             audio_b64 = synth.get("audio_base64")
         except Exception as e:
             pass
@@ -183,6 +183,7 @@ def chat_endpoint(req: ChatRequest):
         "success": True,
         "response": response_text,
         "status": status,
+        "detected_language": detected_lang,
         "requiresApproval": requires_approval,
         "proposedAdvice": proposed_advice,
         "source": "maternacare_core_brain",

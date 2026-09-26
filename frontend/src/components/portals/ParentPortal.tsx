@@ -241,7 +241,7 @@ export function ParentPortal({
           assistantMsg.audio_base64 = data.audio_base64;
           playAudioBase64(data.audio_base64);
         } else if ("speechSynthesis" in window) {
-          speakText(assistantMsg.text);
+          speakText(assistantMsg.text, data.detected_language);
         }
 
         setChatMessages((prev) => [...prev, assistantMsg]);
@@ -369,8 +369,22 @@ export function ParentPortal({
     }
   };
 
+  // Helper to detect language script of text for speech synthesis
+  const detectScriptLang = (str: string): string => {
+    if (/[\u0B80-\u0BFF]/.test(str)) return "ta";
+    if (/[\u0900-\u097F]/.test(str)) return "hi";
+    if (/[\u0C00-\u0C7F]/.test(str)) return "te";
+    if (/[\u0D00-\u0D7F]/.test(str)) return "ml";
+    if (/[\u0C80-\u0CFF]/.test(str)) return "kn";
+    if (/[\u0980-\u09FF]/.test(str)) return "bn";
+    if (/[\u0A80-\u0AFF]/.test(str)) return "gu";
+    if (/[\u0A00-\u0A7F]/.test(str)) return "pa";
+    if (/[\u0600-\u06FF]/.test(str)) return "ur";
+    return "";
+  };
+
   // Model 2: Text-to-Voice (TTS) Speech Synthesis
-  const speakText = (text: string) => {
+  const speakText = (text: string, overrideLang?: string) => {
     if (!("speechSynthesis" in window)) {
       console.warn("Speech synthesis not supported in this browser.");
       return;
@@ -383,7 +397,8 @@ export function ParentPortal({
       const clean = text.replace(/[*#_`]/g, "").trim();
       const utterance = new SpeechSynthesisUtterance(clean);
       
-      const targetLocale = LOCALE_MAP[selectedLanguage] || selectedLanguage;
+      const detectedLang = overrideLang || detectScriptLang(clean) || selectedLanguage || "en";
+      const targetLocale = LOCALE_MAP[detectedLang] || detectedLang;
       utterance.lang = targetLocale;
       utterance.rate = 0.95;
       utterance.pitch = 1.0;
@@ -393,7 +408,7 @@ export function ParentPortal({
       if (voices && voices.length > 0) {
         const matched = voices.find(
           (v) => v.lang.toLowerCase() === targetLocale.toLowerCase() ||
-                 v.lang.toLowerCase().replace("_", "-").startsWith(selectedLanguage.toLowerCase())
+                 v.lang.toLowerCase().replace("_", "-").startsWith(detectedLang.toLowerCase())
         );
         if (matched) {
           utterance.voice = matched;
@@ -812,7 +827,7 @@ export function ParentPortal({
               {msg.sender === "assistant" && (
                 <button
                   type="button"
-                  onClick={() => speakText(msg.text)}
+                  onClick={() => msg.audio_base64 ? playAudioBase64(msg.audio_base64) : speakText(msg.text)}
                   className="text-[10px] text-pink-600 hover:text-pink-800 font-semibold mt-1 ml-2 flex items-center gap-1 cursor-pointer"
                 >
                   <span>🔊 Listen Aloud</span>

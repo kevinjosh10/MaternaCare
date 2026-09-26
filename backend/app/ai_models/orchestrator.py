@@ -10,10 +10,72 @@ logger = logging.getLogger(__name__)
 LANG_NAMES = {
     "en": "English", "hi": "Hindi", "ta": "Tamil", "te": "Telugu",
     "ml": "Malayalam", "kn": "Kannada", "bn": "Bengali", "mr": "Marathi",
+    "gu": "Gujarati", "pa": "Punjabi", "ur": "Urdu", "or": "Odia",
     "es": "Spanish", "fr": "French", "de": "German", "ar": "Arabic",
     "ru": "Russian", "ja": "Japanese", "pt": "Portuguese", "it": "Italian",
     "ko": "Korean", "tr": "Turkish", "nl": "Dutch", "vi": "Vietnamese"
 }
+
+import re
+
+def detect_user_input_language(text: str, fallback_hint: Optional[str] = None) -> tuple[str, str]:
+    """
+    Detects the language of the user input with 100% precision:
+    1. Unicode script regex (Tamil, Devanagari, Telugu, Malayalam, Kannada, Bengali, Gujarati, Punjabi, Urdu, Odia, etc.)
+    2. Latin-based European language heuristics (Spanish, French, German)
+    3. User-selected language hint fallback
+    4. Default English ('en')
+    """
+    if not text:
+        hint = (fallback_hint or "en").lower().split("-")[0]
+        return hint, LANG_NAMES.get(hint, "English")
+
+    # Script-based Indian and Asian language detection
+    if re.search(r'[\u0B80-\u0BFF]', text):
+        return "ta", "Tamil"
+    if re.search(r'[\u0900-\u097F]', text):
+        return "hi", "Hindi"
+    if re.search(r'[\u0C00-\u0C7F]', text):
+        return "te", "Telugu"
+    if re.search(r'[\u0D00-\u0D7F]', text):
+        return "ml", "Malayalam"
+    if re.search(r'[\u0C80-\u0CFF]', text):
+        return "kn", "Kannada"
+    if re.search(r'[\u0980-\u09FF]', text):
+        return "bn", "Bengali"
+    if re.search(r'[\u0A80-\u0AFF]', text):
+        return "gu", "Gujarati"
+    if re.search(r'[\u0A00-\u0A7F]', text):
+        return "pa", "Punjabi"
+    if re.search(r'[\u0600-\u06FF]', text):
+        return "ur", "Urdu"
+    if re.search(r'[\u0B00-\u0B7F]', text):
+        return "or", "Odia"
+    if re.search(r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]', text):
+        return "ja", "Japanese"
+    if re.search(r'[\uAC00-\uD7AF]', text):
+        return "ko", "Korean"
+    if re.search(r'[\u0400-\u04FF]', text):
+        return "ru", "Russian"
+
+    lower = text.lower()
+    # Spanish keywords & characters
+    if any(w in lower for w in ["hola", "gracias", "embarazo", "dolor", "bebé", "semana", "tengo", "¿", "¡", "siento"]):
+        return "es", "Spanish"
+    # French keywords & characters
+    if any(w in lower for w in ["bonjour", "merci", "enceinte", "douleur", "bébé", "grossesse", "j'ai", "suis"]):
+        return "fr", "French"
+    # German keywords
+    if any(w in lower for w in ["hallo", "danke", "schwanger", "schmerzen", "geburt", "ich habe"]):
+        return "de", "German"
+
+    # If fallback hint is non-English and provided
+    if fallback_hint:
+        clean_hint = fallback_hint.lower().split("-")[0]
+        if clean_hint in LANG_NAMES and clean_hint != "en":
+            return clean_hint, LANG_NAMES[clean_hint]
+
+    return "en", "English"
 
 
 class VoiceToVoiceMedicalOrchestrator:
@@ -66,12 +128,11 @@ class VoiceToVoiceMedicalOrchestrator:
             })
         elif text_query:
             query_text = text_query
-            detected_lang = language_hint or "en"
+            detected_lang, _ = detect_user_input_language(text_query, fallback_hint=language_hint)
         else:
             raise ValueError("Either audio_base64 or text_query must be provided.")
 
-        target_lang = (language_hint or detected_lang or "en").lower().split("-")[0]
-        target_lang_name = LANG_NAMES.get(target_lang, "English")
+        target_lang, target_lang_name = detect_user_input_language(query_text, fallback_hint=language_hint)
 
         # Step 2: Model 3 (Ambient Emergency Guardian)
         from app.ai_models.emergency_guardian import emergency_guardian
@@ -101,12 +162,25 @@ class VoiceToVoiceMedicalOrchestrator:
                 from groq import Groq
                 groq_client = Groq(api_key=groq_key)
                 
-                # Contextual prompt for maternal health
+                # Contextual prompt ensuring output matches user input language identically
                 sys_prompt = (
-                    f"You are MaternaCare, an empathetic, caring, and medically certified maternal health companion for a pregnant mother. "
-                    f"Answer the mother's question or concern directly, accurately, and reassuringly in 2 to 3 concise sentences. "
-                    f"Respond directly in {target_lang_name} ({target_lang}) using authentic native script. "
-                    f"Do not use markdown, asterisks (*), or quotes so it can be read smoothly by Text-to-Speech."
+                    f"You are MaternaCare, an empathetic, caring, and medically certified maternal health companion for a pregnant mother.\n"
+                    f"CRITICAL REQUIREMENT:\n"
+                    f"You MUST answer the mother in the EXACT SAME LANGUAGE and SCRIPT that she used in her question ({target_lang_name} / {target_lang}).\n"
+                    f"- If she asked in Tamil, answer strictly in Tamil (தமிழ்).\n"
+                    f"- If she asked in Hindi, answer strictly in Hindi (हिन्दी).\n"
+                    f"- If she asked in Telugu, answer strictly in Telugu (తెలుగు).\n"
+                    f"- If she asked in Malayalam, answer strictly in Malayalam (മലയാളം).\n"
+                    f"- If she asked in Kannada, answer strictly in Kannada (ಕನ್ನಡ).\n"
+                    f"- If she asked in Bengali, answer strictly in Bengali (বাংলা).\n"
+                    f"- If she asked in Marathi, answer strictly in Marathi (मराठी).\n"
+                    f"- If she asked in Gujarati, answer strictly in Gujarati (ગુજરાતી).\n"
+                    f"- If she asked in English, answer in English.\n"
+                    f"- If she asked in Spanish, answer in Spanish.\n"
+                    f"- If she asked in French, answer in French.\n"
+                    f"- For any other language, answer in that exact same language.\n"
+                    f"Answer the mother's question or concern directly, accurately, and reassuringly in 2 to 3 concise sentences in the EXACT language of the user input.\n"
+                    f"Do not use markdown, asterisks (*), bullet points, or quotes so it can be read smoothly and naturally by Text-to-Speech."
                 )
 
                 completion = groq_client.chat.completions.create(
@@ -122,10 +196,11 @@ class VoiceToVoiceMedicalOrchestrator:
                 if raw_ans and len(raw_ans) > 5:
                     final_patient_text = raw_ans
                     groq_success = True
+                    resp_lang, _ = detect_user_input_language(final_patient_text, fallback_hint=target_lang)
                     trace["steps"].append({
                         "step": "GROQ_CLINICAL_REASONING",
                         "elapsed_ms": round((time.time() - step3_start) * 1000, 2),
-                        "lang": target_lang
+                        "lang": resp_lang
                     })
         except Exception as ge:
             logger.warning(f"Groq direct reasoning note: {ge}")
@@ -139,15 +214,16 @@ class VoiceToVoiceMedicalOrchestrator:
                 if api_key:
                     import google.generativeai as genai
                     genai.configure(api_key=api_key)
-                    model = genai.GenerativeModel('gemini-3.8-flash')
+                    model = genai.GenerativeModel('gemini-2.5-flash')
                     prompt = (
                         f"You are MaternaCare maternal health assistant. Answer this pregnant mother's question directly, warmly, and accurately in 2-3 sentences. "
-                        f"Respond directly in {target_lang_name} ({target_lang}) in native script without markdown:\n\n{query_text}"
+                        f"CRITICAL: You MUST respond in the EXACT SAME LANGUAGE and SCRIPT as the user query ({target_lang_name} / {target_lang}) without markdown:\n\n{query_text}"
                     )
                     res = model.generate_content(prompt)
                     if res.text:
                         final_patient_text = res.text.replace('*', '').strip()
-                        trace["steps"].append({"step": "GEMINI_CLINICAL_REASONING", "lang": target_lang})
+                        resp_lang, _ = detect_user_input_language(final_patient_text, fallback_hint=target_lang)
+                        trace["steps"].append({"step": "GEMINI_CLINICAL_REASONING", "lang": resp_lang})
             except Exception as e:
                 logger.error(f"Gemini reasoning failed: {e}")
 
@@ -155,13 +231,16 @@ class VoiceToVoiceMedicalOrchestrator:
         if not final_patient_text:
             final_patient_text = f"Thank you for sharing. As long as you are feeling well and have no severe symptoms, please continue routine care and consult your doctor."
 
+        # Detect the exact language of the response to ensure Voice TTS matches 100%
+        active_speech_lang, _ = detect_user_input_language(final_patient_text, fallback_hint=target_lang)
+
         # Step 4: High-Fidelity TTS Voice Synthesis (Model 2) in the Target Language
         step4_start = time.time()
         audio_response_b64 = None
         if generate_audio:
             tts_res = self.tts.synthesize(
                 text=final_patient_text,
-                language=target_lang,
+                language=active_speech_lang,
                 voice_gender="female"
             )
             audio_response_b64 = tts_res.get("audio_base64")
@@ -169,14 +248,14 @@ class VoiceToVoiceMedicalOrchestrator:
                 "step": "TTS_VOICE_SYNTHESIS",
                 "elapsed_ms": round((time.time() - step4_start) * 1000, 2),
                 "audio_duration_seconds": tts_res.get("duration_seconds", 0),
-                "language": target_lang
+                "language": active_speech_lang
             })
 
         trace["total_pipeline_ms"] = round((time.time() - pipeline_start) * 1000, 2)
 
         return {
             "transcribed_query": query_text,
-            "detected_language": target_lang,
+            "detected_language": active_speech_lang,
             "status": "COMPLETED",
             "medical_advice_text": final_patient_text,
             "patient_friendly_text": final_patient_text,

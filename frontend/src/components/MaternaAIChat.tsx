@@ -99,10 +99,17 @@ export function MaternaAIChat({ patientId = "PAT-DEMO-001" }: { patientId?: stri
       } else {
         setMessages((prev) => [...prev, { sender: "ai", text: data.response || "I have received your query." }]);
         
-        // Optional: browser TTS
-        if (typeof window !== "undefined" && window.speechSynthesis) {
+        if (data.audio_base64) {
+          try {
+            const audio = new Audio(`data:${data.audio_format || "audio/mp3"};base64,${data.audio_base64}`);
+            audio.play().catch((e) => console.warn("Audio autoplay blocked:", e));
+          } catch (e) {
+            console.warn("Audio playback error:", e);
+          }
+        } else if (typeof window !== "undefined" && window.speechSynthesis) {
           const utterance = new SpeechSynthesisUtterance(data.response);
-          utterance.lang = selectedLanguage; // Ensure it speaks in the selected language!
+          const lang = data.detected_language || selectedLanguage || "en";
+          utterance.lang = lang;
           window.speechSynthesis.speak(utterance);
         }
       }
