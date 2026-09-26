@@ -132,21 +132,55 @@ class VoiceToVoiceMedicalOrchestrator:
         target_lang = language_hint or detected_lang or "en"
         
         if target_lang and target_lang.lower() not in ["en", "en-us", "en-in", "english"]:
+            translated = False
+            # 1. Primary: Ultra-Fast Groq Qwen 3.8 Translator (No Rate Limits!)
             try:
                 import os, dotenv
                 dotenv.load_dotenv()
-                api_key = os.environ.get("GEMINI_API_KEY", "")
-                if api_key:
-                    import google.generativeai as genai
-                    genai.configure(api_key=api_key)
-                    model = genai.GenerativeModel('gemini-3.8-flash')
-                    prompt = f"Translate the following medical advice for a pregnant woman directly and naturally into the language with code '{target_lang}'. Do not add explanations, provide ONLY the natural translation in the target language's native script:\n\n{final_patient_text}"
-                    res = model.generate_content(prompt)
-                    if res.text:
-                        final_patient_text = res.text.replace('*', '').strip()
-                        trace["steps"].append({"step": "GEMINI_LANGUAGE_TRANSLATION", "target_lang": target_lang})
-            except Exception as e:
-                logger.error(f"Translation to {target_lang} failed: {e}")
+                groq_key = os.environ.get("GROQ_API_KEY", "")
+                if groq_key:
+                    from groq import Groq
+                    groq_client = Groq(api_key=groq_key)
+                    completion = groq_client.chat.completions.create(
+                        model="qwen/qwen3.8-27b",
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": f"You are a medical translator for pregnant mothers. Translate the medical advice directly into the language with code '{target_lang}'. Return ONLY the translated advice in its authentic native script with no commentary, no markdown, no quotes."
+                            },
+                            {
+                                "role": "user",
+                                "content": final_patient_text
+                            }
+                        ],
+                        temperature=0.2,
+                        max_tokens=300
+                    )
+                    trans_res = completion.choices[0].message.content.replace('*', '').strip()
+                    if trans_res and len(trans_res) > 2:
+                        final_patient_text = trans_res
+                        translated = True
+                        trace["steps"].append({"step": "GROQ_LANGUAGE_TRANSLATION", "target_lang": target_lang})
+            except Exception as ge:
+                logger.warning(f"Groq translation to {target_lang} note: {ge}")
+
+            # 2. Secondary Fallback: Google Gemini Flash
+            if not translated:
+                try:
+                    import os, dotenv
+                    dotenv.load_dotenv()
+                    api_key = os.environ.get("GEMINI_API_KEY", "")
+                    if api_key:
+                        import google.generativeai as genai
+                        genai.configure(api_key=api_key)
+                        model = genai.GenerativeModel('gemini-3.8-flash')
+                        prompt = f"Translate the following medical advice for a pregnant woman directly and naturally into the language with code '{target_lang}'. Do not add explanations, provide ONLY the natural translation in the target language's native script:\n\n{final_patient_text}"
+                        res = model.generate_content(prompt)
+                        if res.text:
+                            final_patient_text = res.text.replace('*', '').strip()
+                            trace["steps"].append({"step": "GEMINI_LANGUAGE_TRANSLATION", "target_lang": target_lang})
+                except Exception as e:
+                    logger.error(f"Gemini translation to {target_lang} failed: {e}")
 
         # Step 5: High-Fidelity TTS Voice Synthesis (Model 2) in the Target Language!
         step5_start = time.time()
