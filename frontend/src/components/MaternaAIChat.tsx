@@ -9,6 +9,22 @@ export function MaternaAIChat({ patientId = "PAT-DEMO-001" }: { patientId?: stri
     { sender: "ai", text: "Hello! I am your MaternaCare AI. You can type or use your voice to ask me any medical questions." },
   ]);
   const [inputValue, setInputValue] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState("en");
+  const LANGUAGES = [
+  { code: 'en', name: 'English' }, { code: 'hi', name: 'Hindi' }, { code: 'ta', name: 'Tamil' }, { code: 'te', name: 'Telugu' },
+  { code: 'bn', name: 'Bengali' }, { code: 'ml', name: 'Malayalam' }, { code: 'mr', name: 'Marathi' }, { code: 'gu', name: 'Gujarati' },
+  { code: 'kn', name: 'Kannada' }, { code: 'pa', name: 'Punjabi' }, { code: 'ur', name: 'Urdu' }, { code: 'es', name: 'Spanish' },
+  { code: 'fr', name: 'French' }, { code: 'de', name: 'German' }, { code: 'zh', name: 'Chinese' }, { code: 'ar', name: 'Arabic' },
+  { code: 'ru', name: 'Russian' }, { code: 'ja', name: 'Japanese' }, { code: 'pt', name: 'Portuguese' }, { code: 'it', name: 'Italian' },
+  { code: 'ko', name: 'Korean' }, { code: 'tr', name: 'Turkish' }, { code: 'nl', name: 'Dutch' }, { code: 'vi', name: 'Vietnamese' },
+  { code: 'pl', name: 'Polish' }, { code: 'uk', name: 'Ukrainian' }, { code: 'th', name: 'Thai' }, { code: 'id', name: 'Indonesian' },
+  { code: 'ms', name: 'Malay' }, { code: 'tl', name: 'Tagalog' }, { code: 'fa', name: 'Persian' }, { code: 'he', name: 'Hebrew' },
+  { code: 'sv', name: 'Swedish' }, { code: 'no', name: 'Norwegian' }, { code: 'da', name: 'Danish' }, { code: 'fi', name: 'Finnish' },
+  { code: 'cs', name: 'Czech' }, { code: 'el', name: 'Greek' }, { code: 'hu', name: 'Hungarian' }, { code: 'ro', name: 'Romanian' },
+  { code: 'sk', name: 'Slovak' }, { code: 'bg', name: 'Bulgarian' }, { code: 'hr', name: 'Croatian' }, { code: 'sr', name: 'Serbian' },
+  { code: 'sl', name: 'Slovenian' }, { code: 'lt', name: 'Lithuanian' }, { code: 'lv', name: 'Latvian' }, { code: 'et', name: 'Estonian' },
+  { code: 'sw', name: 'Swahili' }, { code: 'zu', name: 'Zulu' }
+];
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -34,7 +50,7 @@ export function MaternaAIChat({ patientId = "PAT-DEMO-001" }: { patientId?: stri
     } else {
       recognition.continuous = false;
       recognition.interimResults = false;
-      recognition.lang = "en-US";
+      recognition.lang = selectedLanguage;
       
       recognition.onstart = () => setIsListening(true);
       recognition.onend = () => setIsListening(false);
@@ -63,7 +79,7 @@ export function MaternaAIChat({ patientId = "PAT-DEMO-001" }: { patientId?: stri
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, patientId, language: "en" }),
+        body: JSON.stringify({ message: text, patientId, language: selectedLanguage }),
       });
       
       const data = await res.json();
@@ -86,6 +102,7 @@ export function MaternaAIChat({ patientId = "PAT-DEMO-001" }: { patientId?: stri
         // Optional: browser TTS
         if (typeof window !== "undefined" && window.speechSynthesis) {
           const utterance = new SpeechSynthesisUtterance(data.response);
+          utterance.lang = selectedLanguage; // Ensure it speaks in the selected language!
           window.speechSynthesis.speak(utterance);
         }
       }
@@ -112,14 +129,25 @@ export function MaternaAIChat({ patientId = "PAT-DEMO-001" }: { patientId?: stri
       {isOpen && (
         <div className="fixed bottom-6 right-6 w-[350px] sm:w-[400px] h-[500px] bg-white rounded-3xl shadow-2xl border border-pink-100 flex flex-col z-50 overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-pink-500 to-rose-500 p-4 text-white flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <ParentIcon className="w-6 h-6" />
-              <h3 className="font-bold text-sm">MaternaCare AI Assistant</h3>
+          <div className="bg-gradient-to-r from-pink-500 to-rose-500 p-4 text-white flex flex-col gap-3">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <ParentIcon className="w-6 h-6" />
+                <h3 className="font-bold text-sm">MaternaCare AI Assistant</h3>
+              </div>
+              <button onClick={() => setIsOpen(false)} className="hover:text-pink-200">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
             </div>
-            <button onClick={() => setIsOpen(false)} className="hover:text-pink-200">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
+            <select 
+              value={selectedLanguage} 
+              onChange={(e) => setSelectedLanguage(e.target.value)}
+              className="w-full bg-white/20 text-white text-xs border border-white/30 rounded-lg p-1.5 outline-none focus:bg-white focus:text-pink-600 transition-colors cursor-pointer"
+            >
+              {LANGUAGES.map(lang => (
+                <option key={lang.code} value={lang.code} className="text-slate-800">{lang.name}</option>
+              ))}
+            </select>
           </div>
 
           {/* Messages */}
