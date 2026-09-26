@@ -59,7 +59,6 @@ export async function POST(req: NextRequest) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-          "ngrok-skip-browser-warning": "true",
             "ngrok-skip-browser-warning": "1",
             "User-Agent": "MaternaCare-API-Client/1.0",
           },
